@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, ShieldCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,9 +96,17 @@ const AdminLogin = () => {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-muted-foreground">
-                Password
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-muted-foreground">
+                  Password
+                </Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-primary hover:text-primary/80 transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"
@@ -140,11 +148,6 @@ const AdminLogin = () => {
                 "Sign In"
               )}
             </Button>
-
-            {/* Forgot Password Notice */}
-            <p className="text-center text-xs text-muted-foreground pt-2">
-              Forgot your password? Please contact the system administrator.
-            </p>
           </form>
         </CardContent>
       </Card>
