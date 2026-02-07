@@ -1,19 +1,37 @@
-import { User, Bell, Shield, Database, Palette, Globe } from 'lucide-react';
+import { User, Bell, Shield, Palette, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
 
 export default function Settings() {
+  const { profile, role, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const getRoleBadgeVariant = () => {
+    switch (role) {
+      case 'admin':
+        return 'destructive';
+      case 'manager':
+        return 'default';
+      default:
+        return 'secondary';
+    }
+  };
+
   return (
     <MainLayout>
       <div className="p-8">
@@ -45,40 +63,50 @@ export default function Settings() {
 
           <TabsContent value="profile" className="animate-fade-in">
             <div className="glass rounded-xl p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-foreground">Profile Information</h2>
+                {role && (
+                  <Badge variant={getRoleBadgeVariant()} className="capitalize">
+                    {role}
+                  </Badge>
+                )}
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label>First Name</Label>
-                  <Input defaultValue="Admin" className="bg-secondary border-border" />
+                  <Input 
+                    defaultValue={profile?.first_name || ''} 
+                    className="bg-secondary border-border" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Last Name</Label>
-                  <Input defaultValue="User" className="bg-secondary border-border" />
+                  <Input 
+                    defaultValue={profile?.last_name || ''} 
+                    className="bg-secondary border-border" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
-                  <Input defaultValue="admin@invenpro.com" className="bg-secondary border-border" />
+                  <Input 
+                    defaultValue={profile?.email || ''} 
+                    disabled
+                    className="bg-secondary border-border" 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
-                  <Input defaultValue="+1 555-0100" className="bg-secondary border-border" />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Role</Label>
-                  <Select defaultValue="admin">
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      <SelectItem value="admin">Administrator</SelectItem>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="staff">Warehouse Staff</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input 
+                    defaultValue={profile?.phone || ''} 
+                    placeholder="+1 555-0000"
+                    className="bg-secondary border-border" 
+                  />
                 </div>
               </div>
               <div className="flex justify-end">
-                <Button className="bg-primary hover:bg-primary/90">Save Changes</Button>
+                <Button className="bg-primary hover:bg-primary/90">
+                  Save Changes
+                </Button>
               </div>
             </div>
           </TabsContent>
@@ -87,21 +115,27 @@ export default function Settings() {
             <div className="glass rounded-xl p-6 space-y-6">
               <h2 className="text-lg font-semibold text-foreground">Notification Preferences</h2>
               <div className="space-y-4">
-                {[
-                  { id: 'low_stock', label: 'Low Stock Alerts', description: 'Get notified when products reach reorder level' },
-                  { id: 'order_status', label: 'Order Status Updates', description: 'Receive updates on purchase order status changes' },
-                  { id: 'delivery', label: 'Delivery Notifications', description: 'Get notified about shipments and deliveries' },
-                  { id: 'expiry', label: 'Expiry Alerts', description: 'Receive alerts for products nearing expiry date' },
-                  { id: 'email', label: 'Email Notifications', description: 'Receive notifications via email' },
-                ].map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-3 border-b border-border last:border-0">
-                    <div>
-                      <p className="font-medium text-foreground">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </div>
-                    <Switch defaultChecked />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">Low Stock Alerts</p>
+                    <p className="text-sm text-muted-foreground">Get notified when products are below reorder level</p>
                   </div>
-                ))}
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">Order Updates</p>
+                    <p className="text-sm text-muted-foreground">Get notified about order status changes</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">Email Notifications</p>
+                    <p className="text-sm text-muted-foreground">Receive notifications via email</p>
+                  </div>
+                  <Switch />
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -109,7 +143,7 @@ export default function Settings() {
           <TabsContent value="security" className="animate-fade-in">
             <div className="glass rounded-xl p-6 space-y-6">
               <h2 className="text-lg font-semibold text-foreground">Security Settings</h2>
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Current Password</Label>
                   <Input type="password" className="bg-secondary border-border" />
@@ -122,16 +156,11 @@ export default function Settings() {
                   <Label>Confirm New Password</Label>
                   <Input type="password" className="bg-secondary border-border" />
                 </div>
-                <div className="flex items-center justify-between py-3 border-t border-border">
-                  <div>
-                    <p className="font-medium text-foreground">Two-Factor Authentication</p>
-                    <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
-                  </div>
-                  <Switch />
-                </div>
               </div>
               <div className="flex justify-end">
-                <Button className="bg-primary hover:bg-primary/90">Update Password</Button>
+                <Button className="bg-primary hover:bg-primary/90">
+                  Update Password
+                </Button>
               </div>
             </div>
           </TabsContent>
@@ -139,64 +168,21 @@ export default function Settings() {
           <TabsContent value="preferences" className="animate-fade-in">
             <div className="glass rounded-xl p-6 space-y-6">
               <h2 className="text-lg font-semibold text-foreground">Application Preferences</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label>Language</Label>
-                  <Select defaultValue="en">
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="es">Spanish</SelectItem>
-                      <SelectItem value="fr">French</SelectItem>
-                      <SelectItem value="de">German</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">Compact View</p>
+                    <p className="text-sm text-muted-foreground">Show more items in tables</p>
+                  </div>
+                  <Switch />
                 </div>
-                <div className="space-y-2">
-                  <Label>Timezone</Label>
-                  <Select defaultValue="utc">
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      <SelectItem value="utc">UTC</SelectItem>
-                      <SelectItem value="est">Eastern Time</SelectItem>
-                      <SelectItem value="pst">Pacific Time</SelectItem>
-                      <SelectItem value="gmt">GMT</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-foreground">Auto-refresh Data</p>
+                    <p className="text-sm text-muted-foreground">Automatically refresh data every 5 minutes</p>
+                  </div>
+                  <Switch defaultChecked />
                 </div>
-                <div className="space-y-2">
-                  <Label>Currency</Label>
-                  <Select defaultValue="usd">
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      <SelectItem value="usd">USD ($)</SelectItem>
-                      <SelectItem value="eur">EUR (€)</SelectItem>
-                      <SelectItem value="gbp">GBP (£)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Date Format</Label>
-                  <Select defaultValue="mdy">
-                    <SelectTrigger className="bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border">
-                      <SelectItem value="mdy">MM/DD/YYYY</SelectItem>
-                      <SelectItem value="dmy">DD/MM/YYYY</SelectItem>
-                      <SelectItem value="ymd">YYYY-MM-DD</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <Button className="bg-primary hover:bg-primary/90">Save Preferences</Button>
               </div>
             </div>
           </TabsContent>

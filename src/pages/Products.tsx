@@ -1,34 +1,57 @@
-import { useState } from 'react';
-import { Plus, Upload, Download, Edit, Trash2, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Plus, Upload, Download, Edit, Trash2, Eye, History, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import DataTable from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { mockProducts, mockCategories, mockSuppliers } from '@/data/mockData';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useProducts } from '@/hooks/useProducts';
+import { useCategories } from '@/hooks/useCategories';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { useAuth } from '@/contexts/AuthContext';
+import ProductFormModal from '@/components/products/ProductFormModal';
+import ProductHistoryModal from '@/components/products/ProductHistoryModal';
+import DeleteProductModal from '@/components/products/DeleteProductModal';
+import { Product } from '@/types/database';
 import { cn } from '@/lib/utils';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 export default function Products() {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { isAdmin, isAdminOrManager } = useAuth();
 
-  const getCategory = (id: string) => mockCategories.find((c) => c.id === id)?.name || 'Unknown';
-  const getSupplier = (id: string) => mockSuppliers.find((s) => s.id === id)?.name || 'Unknown';
+  const [filters, setFilters] = useState({
+    categoryId: searchParams.get('category') || '',
+    supplierId: searchParams.get('supplier') || '',
+    lowStockOnly: searchParams.get('lowStock') === 'true',
+  });
+
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
+  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
+  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+
+  const { data: products, isLoading } = useProducts(filters.categoryId || filters.supplierId || filters.lowStockOnly ? {
+    categoryId: filters.categoryId || undefined,
+    supplierId: filters.supplierId || undefined,
+    lowStockOnly: filters.lowStockOnly,
+  } : undefined);
+  const { data: categories } = useCategories();
+  const { data: suppliers } = useSuppliers();
+
+  // Handle URL params for edit modal
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && products) {
+      const product = products.find(p => p.id === editId);
+      if (product) {
+        setEditProduct(product);
+        searchParams.delete('edit');
+        setSearchParams(searchParams);
+      }
+    }
+  }, [searchParams, products]);
 
   const getStockStatus = (quantity: number, reorderLevel: number) => {
     if (quantity <= 0) return { label: 'Out of Stock', variant: 'destructive' as const };
@@ -36,12 +59,41 @@ export default function Products() {
     return { label: 'In Stock', variant: 'success' as const };
   };
 
+  const handleExport = () => {
+    if (!products) return;
+
+    const headers = ['SKU', 'Name', 'Description', 'Category', 'Supplier', 'Quantity', 'Reorder Level', 'Price', 'Cost', 'Location', 'Created At', 'Updated At'];
+    const rows = products.map(p => [
+      p.sku,
+      p.name,
+      p.description || '',
+      p.category?.name || '',
+      p.supplier?.name || '',
+      p.quantity.toString(),
+      p.reorder_level.toString(),
+      p.price.toString(),
+      p.cost.toString(),
+      p.location || '',
+      new Date(p.created_at).toLocaleDateString(),
+      new Date(p.updated_at).toLocaleDateString(),
+    ]);
+
+    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `products-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const columns = [
     {
       key: 'sku',
       header: 'SKU',
       sortable: true,
-      render: (item: typeof mockProducts[0]) => (
+      render: (item: Product) => (
         <span className="font-mono text-sm text-primary">{item.sku}</span>
       ),
     },
@@ -49,7 +101,7 @@ export default function Products() {
       key: 'name',
       header: 'Product',
       sortable: true,
-      render: (item: typeof mockProducts[0]) => (
+      render: (item: Product) => (
         <div>
           <p className="font-medium text-foreground">{item.name}</p>
           <p className="text-sm text-muted-foreground truncate max-w-[200px]">
@@ -59,66 +111,104 @@ export default function Products() {
       ),
     },
     {
-      key: 'categoryId',
+      key: 'category',
       header: 'Category',
-      render: (item: typeof mockProducts[0]) => (
+      render: (item: Product) => (
         <Badge variant="outline" className="bg-secondary/50">
-          {getCategory(item.categoryId)}
+          {item.category?.name || 'Uncategorized'}
         </Badge>
       ),
     },
     {
-      key: 'supplierId',
+      key: 'supplier',
       header: 'Supplier',
-      render: (item: typeof mockProducts[0]) => (
-        <span className="text-muted-foreground">{getSupplier(item.supplierId)}</span>
+      render: (item: Product) => (
+        <span className="text-muted-foreground">{item.supplier?.name || 'No supplier'}</span>
       ),
     },
     {
       key: 'quantity',
       header: 'Quantity',
       sortable: true,
-      render: (item: typeof mockProducts[0]) => (
-        <span
-          className={cn(
-            'font-medium',
-            item.quantity <= item.reorderLevel ? 'text-warning' : 'text-foreground'
-          )}
-        >
+      render: (item: Product) => (
+        <span className={cn(
+          'font-medium',
+          item.quantity <= item.reorder_level ? 'text-warning' : 'text-foreground'
+        )}>
           {item.quantity}
         </span>
+      ),
+    },
+    {
+      key: 'reorder_level',
+      header: 'Reorder Level',
+      sortable: true,
+      render: (item: Product) => (
+        <span className="text-muted-foreground">{item.reorder_level}</span>
       ),
     },
     {
       key: 'price',
       header: 'Price',
       sortable: true,
-      render: (item: typeof mockProducts[0]) => (
+      render: (item: Product) => (
         <span className="font-medium text-foreground">${item.price.toLocaleString()}</span>
+      ),
+    },
+    {
+      key: 'cost',
+      header: 'Cost',
+      sortable: true,
+      render: (item: Product) => (
+        <span className="text-muted-foreground">${item.cost.toLocaleString()}</span>
+      ),
+    },
+    {
+      key: 'location',
+      header: 'Location',
+      render: (item: Product) => (
+        <span className="text-muted-foreground">{item.location || 'N/A'}</span>
       ),
     },
     {
       key: 'status',
       header: 'Status',
-      render: (item: typeof mockProducts[0]) => {
-        const status = getStockStatus(item.quantity, item.reorderLevel);
+      render: (item: Product) => {
+        const status = getStockStatus(item.quantity, item.reorder_level);
         return <Badge variant={status.variant}>{status.label}</Badge>;
       },
     },
     {
       key: 'actions',
       header: 'Actions',
-      render: () => (
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hover:text-primary">
-            <Eye className="w-4 h-4" />
+      render: (item: Product) => (
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:text-primary h-8 w-8"
+            onClick={() => setHistoryProduct(item)}
+          >
+            <History className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="hover:text-primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="hover:text-primary h-8 w-8"
+            onClick={() => setEditProduct(item)}
+          >
             <Edit className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="hover:text-destructive">
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:text-destructive h-8 w-8"
+              onClick={() => setDeleteProduct(item)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -134,111 +224,116 @@ export default function Products() {
             <p className="text-muted-foreground">Manage your product inventory</p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="border-border">
-              <Upload className="w-4 h-4 mr-2" />
-              Import
-            </Button>
-            <Button variant="outline" className="border-border">
+            <Button variant="outline" className="border-border" onClick={handleExport} disabled={!products?.length}>
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-primary hover:bg-primary/90">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Product
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl bg-card border-border">
-                <DialogHeader>
-                  <DialogTitle className="text-foreground">Add New Product</DialogTitle>
-                </DialogHeader>
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div className="space-y-2">
-                    <Label>SKU</Label>
-                    <Input placeholder="PROD-001" className="bg-secondary border-border" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input placeholder="Product name" className="bg-secondary border-border" />
-                  </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label>Description</Label>
-                    <Textarea placeholder="Product description" className="bg-secondary border-border" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Select>
-                      <SelectTrigger className="bg-secondary border-border">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border-border">
-                        {mockCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Supplier</Label>
-                    <Select>
-                      <SelectTrigger className="bg-secondary border-border">
-                        <SelectValue placeholder="Select supplier" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border-border">
-                        {mockSuppliers.map((sup) => (
-                          <SelectItem key={sup.id} value={sup.id}>
-                            {sup.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Quantity</Label>
-                    <Input type="number" placeholder="0" className="bg-secondary border-border" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Reorder Level</Label>
-                    <Input type="number" placeholder="10" className="bg-secondary border-border" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Price ($)</Label>
-                    <Input type="number" placeholder="0.00" className="bg-secondary border-border" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cost ($)</Label>
-                    <Input type="number" placeholder="0.00" className="bg-secondary border-border" />
-                  </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label>Location / Warehouse</Label>
-                    <Input placeholder="Warehouse A" className="bg-secondary border-border" />
-                  </div>
-                  <div className="col-span-2 flex justify-end gap-3 mt-4">
-                    <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button className="bg-primary hover:bg-primary/90">
-                      Add Product
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+            {isAdminOrManager && (
+              <Button className="bg-primary hover:bg-primary/90" onClick={() => setCreateModalOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Product
+              </Button>
+            )}
           </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center gap-4 mb-6">
+          <Select
+            value={filters.categoryId}
+            onValueChange={(value) => setFilters({ ...filters, categoryId: value === 'all' ? '' : value })}
+          >
+            <SelectTrigger className="w-[180px] bg-secondary border-border">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border">
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories?.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filters.supplierId}
+            onValueChange={(value) => setFilters({ ...filters, supplierId: value === 'all' ? '' : value })}
+          >
+            <SelectTrigger className="w-[180px] bg-secondary border-border">
+              <SelectValue placeholder="All Suppliers" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border">
+              <SelectItem value="all">All Suppliers</SelectItem>
+              {suppliers?.map((sup) => (
+                <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant={filters.lowStockOnly ? 'default' : 'outline'}
+            className={cn(
+              'border-border',
+              filters.lowStockOnly && 'bg-warning text-warning-foreground hover:bg-warning/90'
+            )}
+            onClick={() => setFilters({ ...filters, lowStockOnly: !filters.lowStockOnly })}
+          >
+            Low Stock Only
+          </Button>
+
+          {(filters.categoryId || filters.supplierId || filters.lowStockOnly) && (
+            <Button
+              variant="ghost"
+              onClick={() => setFilters({ categoryId: '', supplierId: '', lowStockOnly: false })}
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
 
         {/* Data Table */}
         <div className="animate-slide-up">
-          <DataTable
-            data={mockProducts}
-            columns={columns}
-            searchKeys={['name', 'sku', 'description']}
-          />
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <DataTable
+              data={products || []}
+              columns={columns}
+              searchKeys={['name', 'sku', 'description']}
+            />
+          )}
         </div>
       </div>
+
+      {/* Modals */}
+      <ProductFormModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        mode="create"
+      />
+      {editProduct && (
+        <ProductFormModal
+          open={!!editProduct}
+          onOpenChange={(open) => !open && setEditProduct(null)}
+          product={editProduct}
+          mode="edit"
+        />
+      )}
+      {historyProduct && (
+        <ProductHistoryModal
+          open={!!historyProduct}
+          onOpenChange={(open) => !open && setHistoryProduct(null)}
+          product={historyProduct}
+        />
+      )}
+      {deleteProduct && (
+        <DeleteProductModal
+          open={!!deleteProduct}
+          onOpenChange={(open) => !open && setDeleteProduct(null)}
+          product={deleteProduct}
+        />
+      )}
     </MainLayout>
   );
 }

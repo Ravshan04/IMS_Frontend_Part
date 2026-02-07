@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -13,8 +13,12 @@ import {
   ChevronLeft,
   ChevronRight,
   Box,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from '@/components/ui/badge';
+import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -24,13 +28,42 @@ const navigation = [
   { name: 'Purchase Orders', href: '/orders', icon: ShoppingCart },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Reports', href: '/reports', icon: FileText },
-  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Notifications', href: '/notifications', icon: Bell, showBadge: true },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { profile, role, signOut } = useAuth();
+  const { data: unreadCount } = useUnreadNotificationsCount();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  const getInitials = () => {
+    if (profile?.first_name && profile?.last_name) {
+      return `${profile.first_name.charAt(0)}${profile.last_name.charAt(0)}`.toUpperCase();
+    }
+    if (profile?.email) {
+      return profile.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
+
+  const getRoleBadgeVariant = () => {
+    switch (role) {
+      case 'admin':
+        return 'destructive';
+      case 'manager':
+        return 'default';
+      default:
+        return 'secondary';
+    }
+  };
 
   return (
     <aside
@@ -79,12 +112,19 @@ export default function Sidebar() {
               {isActive && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
               )}
-              <item.icon
-                className={cn(
-                  'w-5 h-5 flex-shrink-0',
-                  isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+              <div className="relative">
+                <item.icon
+                  className={cn(
+                    'w-5 h-5 flex-shrink-0',
+                    isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                  )}
+                />
+                {item.showBadge && unreadCount && unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
                 )}
-              />
+              </div>
               {!collapsed && (
                 <span className={cn('font-medium text-sm', isActive && 'text-primary')}>
                   {item.name}
@@ -99,15 +139,43 @@ export default function Sidebar() {
       <div className="p-4 border-t border-sidebar-border">
         <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
           <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center">
-            <span className="text-sm font-semibold text-primary-foreground">AD</span>
+            <span className="text-sm font-semibold text-primary-foreground">{getInitials()}</span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">Admin User</p>
-              <p className="text-xs text-muted-foreground truncate">admin@invenpro.com</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {profile?.first_name && profile?.last_name 
+                    ? `${profile.first_name} ${profile.last_name}`
+                    : profile?.email || 'User'}
+                </p>
+                {role && (
+                  <Badge variant={getRoleBadgeVariant()} className="text-xs capitalize">
+                    {role}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground truncate">{profile?.email}</p>
             </div>
           )}
         </div>
+        {!collapsed && (
+          <button
+            onClick={handleSignOut}
+            className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
+        )}
+        {collapsed && (
+          <button
+            onClick={handleSignOut}
+            className="mt-3 p-2 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </aside>
   );

@@ -27,7 +27,7 @@ interface DataTableProps<T> {
   pageSize?: number;
 }
 
-export default function DataTable<T extends Record<string, unknown>>({
+export default function DataTable<T extends object>({
   data,
   columns,
   searchable = true,
@@ -42,9 +42,9 @@ export default function DataTable<T extends Record<string, unknown>>({
   // Filter data
   const filteredData = data.filter((item) => {
     if (!search) return true;
-    const keys = searchKeys.length > 0 ? searchKeys : Object.keys(item);
+    const keys = searchKeys.length > 0 ? searchKeys : Object.keys(item as object);
     return keys.some((key) => {
-      const value = item[key];
+      const value = (item as Record<string, unknown>)[key];
       return String(value).toLowerCase().includes(search.toLowerCase());
     });
   });
@@ -52,8 +52,8 @@ export default function DataTable<T extends Record<string, unknown>>({
   // Sort data
   const sortedData = [...filteredData].sort((a, b) => {
     if (!sortKey) return 0;
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
+    const aVal = (a as Record<string, unknown>)[sortKey];
+    const bVal = (b as Record<string, unknown>)[sortKey];
     if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
     if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
     return 0;
@@ -122,7 +122,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                   <TableCell key={column.key}>
                     {column.render
                       ? column.render(item)
-                      : String(item[column.key] ?? '')}
+                      : String((item as Record<string, unknown>)[column.key] ?? '')}
                   </TableCell>
                 ))}
               </TableRow>
