@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, AlertTriangle, FolderTree, Truck, DollarSign, ShoppingCart, Bell } from 'lucide-react';
+import { Package, AlertTriangle, FolderTree, Truck, DollarSign, ShoppingCart, Bell, Plus } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import StatCard from '@/components/dashboard/StatCard';
 import StockChart from '@/components/dashboard/StockChart';
@@ -10,6 +10,7 @@ import RecentProducts from '@/components/dashboard/RecentProducts';
 import LowStockModal from '@/components/dashboard/LowStockModal';
 import NotificationsPanel from '@/components/notifications/NotificationsPanel';
 import CreateOrderModal from '@/components/orders/CreateOrderModal';
+import QuickAddProductModal from '@/components/dashboard/QuickAddProductModal';
 import { Button } from '@/components/ui/button';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const [lowStockOpen, setLowStockOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [createOrderOpen, setCreateOrderOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   const dashboardStats = stats || {
     totalProducts: 0,
@@ -58,13 +60,22 @@ export default function Dashboard() {
               )}
             </Button>
             {isAdminOrManager && (
-              <Button
-                className="bg-primary hover:bg-primary/90"
-                onClick={() => setCreateOrderOpen(true)}
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Create Order
-              </Button>
+              <>
+                <Button
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => setCreateOrderOpen(true)}
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Create Order
+                </Button>
+                <Button
+                  size="icon"
+                  className="bg-success hover:bg-success/90 rounded-full h-12 w-12"
+                  onClick={() => setQuickAddOpen(true)}
+                >
+                  <Plus className="w-6 h-6" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -219,6 +230,10 @@ export default function Dashboard() {
       <CreateOrderModal
         open={createOrderOpen}
         onOpenChange={setCreateOrderOpen}
+      />
+      <QuickAddProductModal
+        open={quickAddOpen}
+        onOpenChange={setQuickAddOpen}
       />
     </MainLayout>
   );

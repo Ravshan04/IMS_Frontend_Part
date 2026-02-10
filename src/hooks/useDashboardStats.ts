@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { mockService } from '@/services/mockData';
+import { Product, Category, Supplier } from '@/types/database';
 
 interface DashboardStats {
   totalProducts: number;
@@ -14,32 +16,75 @@ export function useDashboardStats() {
   return useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async (): Promise<DashboardStats> => {
-      // Fetch all counts in parallel
-      const [
-        productsResult,
-        categoriesResult,
-        suppliersResult,
-        ordersResult,
-      ] = await Promise.all([
-        supabase.from('products').select('quantity, reorder_level, price, cost'),
-        supabase.from('categories').select('id', { count: 'exact', head: true }),
-        supabase.from('suppliers').select('id', { count: 'exact', head: true }),
-        supabase.from('purchase_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      ]);
+      const isMockMode = localStorage.getItem('mockSession');
 
-      const products = productsResult.data || [];
-      const totalProducts = products.length;
-      const lowStockItems = products.filter(p => p.quantity <= p.reorder_level).length;
-      const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.cost), 0);
+      if (isMockMode) {
+        // Calculate stats from mock data
+        const products = mockService.get<Product>('products');
+        const categories = mockService.get<Category>('categories');
+        const suppliers = mockService.get<Supplier>('suppliers');
 
-      return {
-        totalProducts,
-        lowStockItems,
-        totalCategories: categoriesResult.count || 0,
-        totalSuppliers: suppliersResult.count || 0,
-        totalValue,
-        pendingOrders: ordersResult.count || 0,
-      };
+        const totalProducts = products.length;
+        const lowStockItems = products.filter(p => p.quantity <= p.reorder_level).length;
+        const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.cost), 0);
+
+        return {
+          totalProducts,
+          lowStockItems,
+          totalCategories: categories.length,
+          totalSuppliers: suppliers.length,
+          totalValue,
+          pendingOrders: 0, // No orders in mock data yet
+        };
+      }
+
+      try {
+        // Fetch all counts in parallel
+        const [
+          productsResult,
+          categoriesResult,
+          suppliersResult,
+          ordersResult,
+        ] = await Promise.all([
+          supabase.from('products').select('quantity, reorder_level, price, cost'),
+          supabase.from('categories').select('id', { count: 'exact', head: true }),
+          supabase.from('suppliers').select('id', { count: 'exact', head: true }),
+          supabase.from('purchase_orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        ]);
+
+        const products = productsResult.data || [];
+        const totalProducts = products.length;
+        const lowStockItems = products.filter(p => p.quantity <= p.reorder_level).length;
+        const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.cost), 0);
+
+        return {
+          totalProducts,
+          lowStockItems,
+          totalCategories: categoriesResult.count || 0,
+          totalSuppliers: suppliersResult.count || 0,
+          totalValue,
+          pendingOrders: ordersResult.count || 0,
+        };
+      } catch (error) {
+        console.warn('Supabase fetch failed, falling back to mock data', error);
+        // Fallback to mock data on error
+        const products = mockService.get<Product>('products');
+        const categories = mockService.get<Category>('categories');
+        const suppliers = mockService.get<Supplier>('suppliers');
+
+        const totalProducts = products.length;
+        const lowStockItems = products.filter(p => p.quantity <= p.reorder_level).length;
+        const totalValue = products.reduce((sum, p) => sum + (p.quantity * p.cost), 0);
+
+        return {
+          totalProducts,
+          lowStockItems,
+          totalCategories: categories.length,
+          totalSuppliers: suppliers.length,
+          totalValue,
+          pendingOrders: 0,
+        };
+      }
     },
   });
 }

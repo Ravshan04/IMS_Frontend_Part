@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Notification } from '@/types/database';
 import { useAuth } from '@/contexts/AuthContext';
+import { mockService } from '@/services/mockData';
 
 export function useNotifications() {
   const { user } = useAuth();
@@ -11,14 +12,25 @@ export function useNotifications() {
     queryFn: async () => {
       if (!user) return [];
 
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const isMockMode = localStorage.getItem('mockSession');
 
-      if (error) throw error;
-      return data as Notification[];
+      if (isMockMode) {
+        return mockService.get<Notification>('notifications');
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data as Notification[];
+      } catch (error) {
+        console.warn('Supabase fetch failed, falling back to mock data', error);
+        return mockService.get<Notification>('notifications');
+      }
     },
     enabled: !!user,
   });
@@ -32,14 +44,27 @@ export function useUnreadNotificationsCount() {
     queryFn: async () => {
       if (!user) return 0;
 
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
+      const isMockMode = localStorage.getItem('mockSession');
 
-      if (error) throw error;
-      return count || 0;
+      if (isMockMode) {
+        const notifications = mockService.get<Notification>('notifications');
+        return notifications.filter(n => !n.read).length;
+      }
+
+      try {
+        const { count, error } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('read', false);
+
+        if (error) throw error;
+        return count || 0;
+      } catch (error) {
+        console.warn('Supabase fetch failed, falling back to mock data', error);
+        const notifications = mockService.get<Notification>('notifications');
+        return notifications.filter(n => !n.read).length;
+      }
     },
     enabled: !!user,
   });
@@ -50,12 +75,17 @@ export function useMarkNotificationAsRead() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('id', id);
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('id', id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } catch (error) {
+        console.warn('Supabase update failed, falling back to mock data', error);
+        mockService.update<Notification>('notifications', id, { read: true });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -72,13 +102,23 @@ export function useMarkAllNotificationsAsRead() {
     mutationFn: async () => {
       if (!user) return;
 
-      const { error } = await supabase
-        .from('notifications')
-        .update({ read: true })
-        .eq('user_id', user.id)
-        .eq('read', false);
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('user_id', user.id)
+          .eq('read', false);
 
-      if (error) throw error;
+        if (error) throw error;
+      } catch (error) {
+        console.warn('Supabase update failed, falling back to mock data', error);
+        const notifications = mockService.get<Notification>('notifications');
+        notifications.forEach(n => {
+          if (!n.read) {
+            mockService.update<Notification>('notifications', n.id, { read: true });
+          }
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

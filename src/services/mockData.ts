@@ -1,4 +1,4 @@
-import { Category, Product, Supplier } from '@/types/database';
+import { Category, Product, Supplier, Notification } from '@/types/database';
 
 // Initial Mock Data (Copied/Adapted from src/data/mockData.ts but structured for "DB" use)
 const initialCategories: Category[] = [
@@ -17,6 +17,11 @@ const initialSuppliers: Supplier[] = [
     { id: '2', name: 'Global Supplies Co', contact_person: 'Sarah Johnson', email: 'sarah@globalsupplies.com', phone: '+1 555-0102', address: '456 Commerce St', rating: 4.5, lead_time: 3, product_count: 5, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
 ];
 
+const initialNotifications: Notification[] = [
+    { id: '1', user_id: 'mock-user', type: 'low_stock', title: 'Low Stock Alert', message: 'MacBook Pro 14" is running low on stock (25 units remaining)', reference_id: '1', reference_type: 'product', read: false, created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
+    { id: '2', user_id: 'mock-user', type: 'system', title: 'Welcome to InvenPro', message: 'You are viewing demo data in mock mode. All changes are saved locally.', reference_id: null, reference_type: null, read: false, created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() },
+];
+
 export const mockService = {
     get: <T>(table: string): T[] => {
         const stored = localStorage.getItem(`mock_${table}`);
@@ -27,6 +32,7 @@ export const mockService = {
         if (table === 'categories') initial = initialCategories;
         if (table === 'products') initial = initialProducts;
         if (table === 'suppliers') initial = initialSuppliers;
+        if (table === 'notifications') initial = initialNotifications;
 
         localStorage.setItem(`mock_${table}`, JSON.stringify(initial));
         return initial;
