@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -17,27 +17,29 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
-
-const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Products', href: '/products', icon: Package },
-  { name: 'Categories', href: '/categories', icon: FolderTree },
-  { name: 'Suppliers', href: '/suppliers', icon: Truck },
-  { name: 'Purchase Orders', href: '/orders', icon: ShoppingCart },
-  { name: 'Customers', href: '/customers', icon: Users },
-  { name: 'Reports', href: '/reports', icon: FileText },
-  { name: 'Notifications', href: '/notifications', icon: Bell, showBadge: true },
-  { name: 'Settings', href: '/settings', icon: Settings },
-];
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, role, signOut } = useAuth();
+  const { t } = useLanguage();
   const { data: unreadCount } = useUnreadNotificationsCount();
+
+  const navigation = useMemo(() => [
+    { name: t('dashboard'), href: '/', icon: LayoutDashboard },
+    { name: t('products'), href: '/products', icon: Package },
+    { name: t('categories'), href: '/categories', icon: FolderTree },
+    { name: t('suppliers'), href: '/suppliers', icon: Truck },
+    { name: t('purchaseOrders'), href: '/orders', icon: ShoppingCart },
+    { name: t('customers'), href: '/customers', icon: Users },
+    { name: t('reports'), href: '/reports', icon: FileText },
+    { name: t('notifications'), href: '/notifications', icon: Bell, showBadge: true },
+    { name: t('settings'), href: '/settings', icon: Settings },
+  ], [t]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -100,7 +102,7 @@ export default function Sidebar() {
           const isActive = location.pathname === item.href;
           return (
             <Link
-              key={item.name}
+              key={item.href}
               to={item.href}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative',
@@ -119,7 +121,7 @@ export default function Sidebar() {
                     isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                   )}
                 />
-                {item.showBadge && unreadCount && unreadCount > 0 && (
+                {item.showBadge && unreadCount !== undefined && unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-[10px] rounded-full flex items-center justify-center">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
@@ -145,7 +147,7 @@ export default function Sidebar() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-foreground truncate">
-                  {profile?.first_name && profile?.last_name 
+                  {profile?.first_name && profile?.last_name
                     ? `${profile.first_name} ${profile.last_name}`
                     : profile?.email || 'User'}
                 </p>
@@ -165,7 +167,7 @@ export default function Sidebar() {
             className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Sign Out
+            {t('logout')}
           </button>
         )}
         {collapsed && (

@@ -16,11 +16,13 @@ import { Button } from '@/components/ui/button';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { isAdminOrManager } = useAuth();
+  const { t } = useLanguage();
   const { data: stats } = useDashboardStats();
   const { data: unreadCount } = useUnreadNotificationsCount();
 
@@ -42,8 +44,8 @@ export default function Dashboard() {
     <MainLayout>
       <div className="p-4 sm:p-8 max-w-7xl mx-auto">
         <PageHeader
-          title="Dashboard"
-          description="Overview of your inventory performance and alerts."
+          title={t('dashboard')}
+          description={t('overview_desc')}
         >
           <Button
             variant="outline"
@@ -51,8 +53,8 @@ export default function Dashboard() {
             onClick={() => setNotificationsOpen(true)}
           >
             <Bell className="w-4 h-4 mr-2" />
-            Notifications
-            {unreadCount && unreadCount > 0 && (
+            {t('notifications')}
+            {unreadCount !== undefined && unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
                 {unreadCount}
               </span>
@@ -65,13 +67,13 @@ export default function Dashboard() {
                 onClick={() => setCreateOrderOpen(true)}
               >
                 <ShoppingCart className="w-4 h-4 mr-2" />
-                New Order
+                {t('new_order')}
               </Button>
               <Button
                 size="icon"
                 className="bg-success hover:bg-success/90 rounded-full h-10 w-10 shadow-sm"
                 onClick={() => setQuickAddOpen(true)}
-                title="Quick Add Product"
+                title={t('quick_add_product')}
               >
                 <Plus className="w-5 h-5" />
               </Button>
@@ -86,11 +88,11 @@ export default function Dashboard() {
             onClick={() => navigate('/products')}
           >
             <StatCard
-              title="Total Products"
+              title={t('totalProducts')}
               value={dashboardStats.totalProducts}
               icon={<Package className="w-5 h-5" />}
               trend={8.2}
-              trendLabel="vs last month"
+              trendLabel={t('vs_last_month')}
               className="animate-slide-up hover:border-primary/50 transition-all hover:shadow-md"
             />
           </div>
@@ -99,11 +101,11 @@ export default function Dashboard() {
             onClick={() => setLowStockOpen(true)}
           >
             <StatCard
-              title="Low Stock"
+              title={t('lowStock')}
               value={dashboardStats.lowStockItems}
               icon={<AlertTriangle className="w-5 h-5" />}
               trend={dashboardStats.lowStockItems > 0 ? -dashboardStats.lowStockItems : 0}
-              trendLabel="needs attention"
+              trendLabel={t('needs_attention')}
               className="animate-slide-up [animation-delay:50ms] hover:border-warning/50 transition-all hover:shadow-md"
             />
           </div>
@@ -112,7 +114,7 @@ export default function Dashboard() {
             onClick={() => navigate('/categories')}
           >
             <StatCard
-              title="Categories"
+              title={t('categories')}
               value={dashboardStats.totalCategories}
               icon={<FolderTree className="w-5 h-5" />}
               className="animate-slide-up [animation-delay:100ms] hover:border-primary/50 transition-all hover:shadow-md"
@@ -123,20 +125,20 @@ export default function Dashboard() {
             onClick={() => navigate('/suppliers')}
           >
             <StatCard
-              title="Suppliers"
+              title={t('suppliers')}
               value={dashboardStats.totalSuppliers}
               icon={<Truck className="w-5 h-5" />}
               trend={2}
-              trendLabel="new this month"
+              trendLabel={t('new_this_month')}
               className="animate-slide-up [animation-delay:150ms] hover:border-primary/50 transition-all hover:shadow-md"
             />
           </div>
           <StatCard
-            title="Total Value"
+            title={t('totalValue')}
             value={`$${(dashboardStats.totalValue / 1000).toFixed(0)}k`}
             icon={<DollarSign className="w-5 h-5" />}
             trend={12.5}
-            trendLabel="vs last month"
+            trendLabel={t('vs_last_month')}
             className="animate-slide-up [animation-delay:200ms]"
           />
           <div
@@ -144,7 +146,7 @@ export default function Dashboard() {
             onClick={() => navigate('/orders')}
           >
             <StatCard
-              title="Pending Orders"
+              title={t('purchaseOrders')}
               value={dashboardStats.pendingOrders}
               icon={<ShoppingCart className="w-5 h-5" />}
               className="animate-slide-up [animation-delay:250ms] hover:border-primary/50 transition-all hover:shadow-md"
@@ -162,7 +164,7 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
               <Package className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-medium">All Products</span>
+            <span className="font-medium">{t('all_products')}</span>
           </Button>
           <Button
             variant="outline"
@@ -172,7 +174,7 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
               <AlertTriangle className="w-5 h-5 text-warning" />
             </div>
-            <span className="font-medium">Low Stock Alerts</span>
+            <span className="font-medium">{t('low_stock_alerts')}</span>
           </Button>
           {isAdminOrManager && (
             <Button
@@ -183,7 +185,7 @@ export default function Dashboard() {
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <ShoppingCart className="w-5 h-5 text-primary" />
               </div>
-              <span className="font-medium">New Purchase Order</span>
+              <span className="font-medium">{t('new_order')}</span>
             </Button>
           )}
           <Button
@@ -194,8 +196,8 @@ export default function Dashboard() {
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
               <Bell className="w-5 h-5 text-primary" />
             </div>
-            <span className="font-medium">Notifications</span>
-            {unreadCount && unreadCount > 0 && (
+            <span className="font-medium">{t('notifications')}</span>
+            {unreadCount !== undefined && unreadCount > 0 && (
               <span className="absolute top-4 right-6 w-5 h-5 bg-destructive text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {unreadCount}
               </span>
