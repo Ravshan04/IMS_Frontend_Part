@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, AlertTriangle, FolderTree, Truck, DollarSign, ShoppingCart, Bell, Plus } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import PageHeader from '@/components/layout/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
 import StockChart from '@/components/dashboard/StockChart';
 import SalesChart from '@/components/dashboard/SalesChart';
@@ -15,11 +16,12 @@ import { Button } from '@/components/ui/button';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { isAdminOrManager } = useAuth();
-  const { data: stats, isLoading } = useDashboardStats();
+  const { data: stats } = useDashboardStats();
   const { data: unreadCount } = useUnreadNotificationsCount();
 
   const [lowStockOpen, setLowStockOpen] = useState(false);
@@ -38,52 +40,49 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <div className="p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 animate-fade-in">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back! Here's an overview of your inventory.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              className="border-border relative"
-              onClick={() => setNotificationsOpen(true)}
-            >
-              <Bell className="w-4 h-4 mr-2" />
-              Notifications
-              {unreadCount && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </Button>
-            {isAdminOrManager && (
-              <>
-                <Button
-                  className="bg-primary hover:bg-primary/90"
-                  onClick={() => setCreateOrderOpen(true)}
-                >
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Create Order
-                </Button>
-                <Button
-                  size="icon"
-                  className="bg-success hover:bg-success/90 rounded-full h-12 w-12"
-                  onClick={() => setQuickAddOpen(true)}
-                >
-                  <Plus className="w-6 h-6" />
-                </Button>
-              </>
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+        <PageHeader
+          title="Dashboard"
+          description="Overview of your inventory performance and alerts."
+        >
+          <Button
+            variant="outline"
+            className="border-border relative"
+            onClick={() => setNotificationsOpen(true)}
+          >
+            <Bell className="w-4 h-4 mr-2" />
+            Notifications
+            {unreadCount && unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
+                {unreadCount}
+              </span>
             )}
-          </div>
-        </div>
+          </Button>
+          {isAdminOrManager && (
+            <div className="flex items-center gap-2">
+              <Button
+                className="bg-primary hover:bg-primary/90 shadow-sm"
+                onClick={() => setCreateOrderOpen(true)}
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                New Order
+              </Button>
+              <Button
+                size="icon"
+                className="bg-success hover:bg-success/90 rounded-full h-10 w-10 shadow-sm"
+                onClick={() => setQuickAddOpen(true)}
+                title="Quick Add Product"
+              >
+                <Plus className="w-5 h-5" />
+              </Button>
+            </div>
+          )}
+        </PageHeader>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-10 overflow-hidden">
           <div
-            className="cursor-pointer"
+            className="cursor-pointer group"
             onClick={() => navigate('/products')}
           >
             <StatCard
@@ -92,35 +91,35 @@ export default function Dashboard() {
               icon={<Package className="w-5 h-5" />}
               trend={8.2}
               trendLabel="vs last month"
-              className="animate-slide-up hover:border-primary/50 transition-colors"
+              className="animate-slide-up hover:border-primary/50 transition-all hover:shadow-md"
             />
           </div>
           <div
-            className="cursor-pointer"
+            className="cursor-pointer group"
             onClick={() => setLowStockOpen(true)}
           >
             <StatCard
-              title="Low Stock Items"
+              title="Low Stock"
               value={dashboardStats.lowStockItems}
               icon={<AlertTriangle className="w-5 h-5" />}
               trend={dashboardStats.lowStockItems > 0 ? -dashboardStats.lowStockItems : 0}
               trendLabel="needs attention"
-              className="animate-slide-up [animation-delay:50ms] hover:border-warning/50 transition-colors"
+              className="animate-slide-up [animation-delay:50ms] hover:border-warning/50 transition-all hover:shadow-md"
             />
           </div>
           <div
-            className="cursor-pointer"
+            className="cursor-pointer group"
             onClick={() => navigate('/categories')}
           >
             <StatCard
               title="Categories"
               value={dashboardStats.totalCategories}
               icon={<FolderTree className="w-5 h-5" />}
-              className="animate-slide-up [animation-delay:100ms] hover:border-primary/50 transition-colors"
+              className="animate-slide-up [animation-delay:100ms] hover:border-primary/50 transition-all hover:shadow-md"
             />
           </div>
           <div
-            className="cursor-pointer"
+            className="cursor-pointer group"
             onClick={() => navigate('/suppliers')}
           >
             <StatCard
@@ -129,7 +128,7 @@ export default function Dashboard() {
               icon={<Truck className="w-5 h-5" />}
               trend={2}
               trendLabel="new this month"
-              className="animate-slide-up [animation-delay:150ms] hover:border-primary/50 transition-colors"
+              className="animate-slide-up [animation-delay:150ms] hover:border-primary/50 transition-all hover:shadow-md"
             />
           </div>
           <StatCard
@@ -141,55 +140,63 @@ export default function Dashboard() {
             className="animate-slide-up [animation-delay:200ms]"
           />
           <div
-            className="cursor-pointer"
+            className="cursor-pointer group"
             onClick={() => navigate('/orders')}
           >
             <StatCard
               title="Pending Orders"
               value={dashboardStats.pendingOrders}
               icon={<ShoppingCart className="w-5 h-5" />}
-              className="animate-slide-up [animation-delay:250ms] hover:border-primary/50 transition-colors"
+              className="animate-slide-up [animation-delay:250ms] hover:border-primary/50 transition-all hover:shadow-md"
             />
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 overflow-hidden">
           <Button
             variant="outline"
-            className="h-auto py-4 flex flex-col gap-2 border-border hover:border-primary/50"
+            className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-primary/50 hover:bg-primary/5 transition-all animate-fade-in [animation-delay:300ms]"
             onClick={() => navigate('/products')}
           >
-            <Package className="w-6 h-6 text-primary" />
-            <span>View All Products</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Package className="w-5 h-5 text-primary" />
+            </div>
+            <span className="font-medium">All Products</span>
           </Button>
           <Button
             variant="outline"
-            className="h-auto py-4 flex flex-col gap-2 border-border hover:border-warning/50"
+            className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-warning/50 hover:bg-warning/5 transition-all animate-fade-in [animation-delay:350ms]"
             onClick={() => setLowStockOpen(true)}
           >
-            <AlertTriangle className="w-6 h-6 text-warning" />
-            <span>Low Stock Alerts</span>
+            <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-warning" />
+            </div>
+            <span className="font-medium">Low Stock Alerts</span>
           </Button>
           {isAdminOrManager && (
             <Button
               variant="outline"
-              className="h-auto py-4 flex flex-col gap-2 border-border hover:border-primary/50"
+              className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-primary/50 hover:bg-primary/5 transition-all animate-fade-in [animation-delay:400ms]"
               onClick={() => setCreateOrderOpen(true)}
             >
-              <ShoppingCart className="w-6 h-6 text-primary" />
-              <span>Create Purchase Order</span>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <ShoppingCart className="w-5 h-5 text-primary" />
+              </div>
+              <span className="font-medium">New Purchase Order</span>
             </Button>
           )}
           <Button
             variant="outline"
-            className="h-auto py-4 flex flex-col gap-2 border-border hover:border-primary/50 relative"
+            className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-primary/50 hover:bg-primary/5 transition-all relative animate-fade-in [animation-delay:450ms]"
             onClick={() => setNotificationsOpen(true)}
           >
-            <Bell className="w-6 h-6 text-primary" />
-            <span>View Notifications</span>
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Bell className="w-5 h-5 text-primary" />
+            </div>
+            <span className="font-medium">Notifications</span>
             {unreadCount && unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
+              <span className="absolute top-4 right-6 w-5 h-5 bg-destructive text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
@@ -197,21 +204,21 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="animate-slide-up [animation-delay:300ms]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 overflow-hidden">
+          <div className="animate-slide-up [animation-delay:500ms]">
             <SalesChart />
           </div>
-          <div className="animate-slide-up [animation-delay:350ms]">
+          <div className="animate-slide-up [animation-delay:550ms]">
             <StockChart />
           </div>
         </div>
 
         {/* Second Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 animate-slide-up [animation-delay:400ms]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 overflow-hidden">
+          <div className="lg:col-span-2 animate-slide-up [animation-delay:600ms]">
             <RecentProducts />
           </div>
-          <div className="animate-slide-up [animation-delay:450ms]">
+          <div className="animate-slide-up [animation-delay:650ms]">
             <CategoryPieChart />
           </div>
         </div>

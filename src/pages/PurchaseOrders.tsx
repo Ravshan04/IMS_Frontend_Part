@@ -1,27 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Eye, FileText, Truck, CheckCircle, XCircle, Clock, Loader2, Check, Package } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import PageHeader from '@/components/layout/PageHeader';
 import DataTable from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { usePurchaseOrders, usePurchaseOrder, useUpdatePurchaseOrderStatus, useReceivePurchaseOrder } from '@/hooks/usePurchaseOrders';
-import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateOrderModal from '@/components/orders/CreateOrderModal';
 import { PurchaseOrder, OrderStatus } from '@/types/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function PurchaseOrders() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { isAdmin, isAdminOrManager } = useAuth();
+  const { isAdminOrManager } = useAuth();
   const supplierId = searchParams.get('supplier') || undefined;
 
   const { data: orders, isLoading } = usePurchaseOrders({ supplierId });
-  const { data: suppliers } = useSuppliers();
   const updateStatus = useUpdatePurchaseOrderStatus();
   const receiveOrder = useReceivePurchaseOrder();
 
@@ -36,12 +35,13 @@ export default function PurchaseOrders() {
   useEffect(() => {
     if (searchParams.get('create') === 'true') {
       setCreateModalOpen(true);
-      searchParams.delete('create');
-      setSearchParams(searchParams);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('create');
+      setSearchParams(newParams);
     }
-  }, [searchParams]);
+  }, [searchParams, setSearchParams]);
 
-  const getStatusConfig = (status: OrderStatus) => {
+  const getStatusConfig = useCallback((status: OrderStatus) => {
     switch (status) {
       case 'pending':
         return { label: 'Pending', variant: 'warning' as const, icon: Clock };
@@ -54,14 +54,14 @@ export default function PurchaseOrders() {
       case 'cancelled':
         return { label: 'Cancelled', variant: 'destructive' as const, icon: XCircle };
     }
-  };
+  }, []);
 
-  const handleUpdateStatus = async (orderId: string, status: OrderStatus) => {
+  const handleUpdateStatus = useCallback(async (orderId: string, status: OrderStatus) => {
     await updateStatus.mutateAsync({ id: orderId, status });
     setViewOrderId(null);
-  };
+  }, [updateStatus]);
 
-  const handleReceiveOrder = async () => {
+  const handleReceiveOrder = useCallback(async () => {
     if (!receiveOrderData?.items) return;
 
     const receivedItems = receiveOrderData.items.map((item) => ({
@@ -77,29 +77,32 @@ export default function PurchaseOrders() {
 
     setReceiveOrderId(null);
     setReceivedQuantities({});
-  };
+  }, [receiveOrderData, receivedQuantities, receiveOrder]);
 
-  const statusCounts = {
-    pending: orders?.filter(o => o.status === 'pending').length || 0,
-    approved: orders?.filter(o => o.status === 'approved').length || 0,
-    shipped: orders?.filter(o => o.status === 'shipped').length || 0,
-    received: orders?.filter(o => o.status === 'received').length || 0,
-  };
+  const statusStats = useMemo(() => {
+    if (!orders) return { pending: 0, approved: 0, shipped: 0, received: 0 };
+    return {
+      pending: orders.filter(o => o.status === 'pending').length,
+      approved: orders.filter(o => o.status === 'approved').length,
+      shipped: orders.filter(o => o.status === 'shipped').length,
+      received: orders.filter(o => o.status === 'received').length,
+    };
+  }, [orders]);
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       key: 'order_number',
       header: 'Order ID',
       sortable: true,
       render: (item: PurchaseOrder) => (
-        <span className="font-mono text-sm text-primary">{item.order_number}</span>
+        <span className="font-mono text-sm text-primary font-medium">{item.order_number}</span>
       ),
     },
     {
       key: 'supplier',
       header: 'Supplier',
       render: (item: PurchaseOrder) => (
-        <span className="text-foreground">{item.supplier?.name || 'Unknown'}</span>
+        <span className="font-medium text-foreground">{item.supplier?.name || 'Unknown'}</span>
       ),
     },
     {
@@ -107,7 +110,7 @@ export default function PurchaseOrders() {
       header: 'Total Amount',
       sortable: true,
       render: (item: PurchaseOrder) => (
-        <span className="font-medium text-foreground">${Number(item.total_amount).toLocaleString()}</span>
+        <span className="font-semibold text-foreground">${Number(item.total_amount).toLocaleString()}</span>
       ),
     },
     {
@@ -115,18 +118,8 @@ export default function PurchaseOrders() {
       header: 'Order Date',
       sortable: true,
       render: (item: PurchaseOrder) => (
-        <span className="text-muted-foreground">
+        <span className="text-muted-foreground text-sm">
           {new Date(item.order_date).toLocaleDateString()}
-        </span>
-      ),
-    },
-    {
-      key: 'expected_date',
-      header: 'Expected Date',
-      sortable: true,
-      render: (item: PurchaseOrder) => (
-        <span className="text-muted-foreground">
-          {item.expected_date ? new Date(item.expected_date).toLocaleDateString() : 'N/A'}
         </span>
       ),
     },
@@ -137,7 +130,7 @@ export default function PurchaseOrders() {
         const config = getStatusConfig(item.status);
         const Icon = config.icon;
         return (
-          <Badge variant={config.variant} className="gap-1">
+          <Badge variant={config.variant} className="gap-1.5 capitalize font-medium py-0.5">
             <Icon className="w-3 h-3" />
             {config.label}
           </Badge>
@@ -148,100 +141,101 @@ export default function PurchaseOrders() {
       key: 'actions',
       header: 'Actions',
       render: (item: PurchaseOrder) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             variant="ghost"
             size="icon"
             className="hover:text-primary h-8 w-8"
             onClick={() => setViewOrderId(item.id)}
+            title="View Details"
           >
             <Eye className="w-4 h-4" />
           </Button>
           {isAdminOrManager && item.status === 'pending' && (
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              className="hover:text-success h-8"
+              className="h-7 text-[10px] uppercase font-bold tracking-wider"
               onClick={() => handleUpdateStatus(item.id, 'approved')}
             >
-              <Check className="w-4 h-4 mr-1" />
               Approve
             </Button>
           )}
           {isAdminOrManager && item.status === 'approved' && (
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              className="hover:text-primary h-8"
+              className="h-7 text-[10px] uppercase font-bold tracking-wider"
               onClick={() => handleUpdateStatus(item.id, 'shipped')}
             >
-              <Truck className="w-4 h-4 mr-1" />
               Ship
             </Button>
           )}
           {item.status === 'shipped' && (
             <Button
-              variant="ghost"
+              variant="default"
               size="sm"
-              className="hover:text-success h-8"
+              className="h-7 text-[10px] uppercase font-bold tracking-wider"
               onClick={() => setReceiveOrderId(item.id)}
             >
-              <Package className="w-4 h-4 mr-1" />
               Receive
             </Button>
           )}
         </div>
       ),
     },
-  ];
+  ], [isAdminOrManager, getStatusConfig, handleUpdateStatus]);
 
   return (
     <MainLayout>
-      <div className="p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 animate-fade-in">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Purchase Orders</h1>
-            <p className="text-muted-foreground">Manage purchase orders and track deliveries</p>
-          </div>
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+        <PageHeader
+          title="Purchase Orders"
+          description="Track incoming shipments and manage procurement."
+        >
           {isAdminOrManager && (
-            <Button className="bg-primary hover:bg-primary/90" onClick={() => setCreateModalOpen(true)}>
+            <Button className="bg-primary hover:bg-primary/90 shadow-sm" onClick={() => setCreateModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Order
+              New Order
             </Button>
           )}
-        </div>
+        </PageHeader>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Pending', count: statusCounts.pending, color: 'text-warning' },
-            { label: 'Approved', count: statusCounts.approved, color: 'text-muted-foreground' },
-            { label: 'Shipped', count: statusCounts.shipped, color: 'text-primary' },
-            { label: 'Received', count: statusCounts.received, color: 'text-success' },
+            { label: 'Pending Approval', count: statusStats.pending, color: 'text-warning', variant: 'bg-warning/10' },
+            { label: 'In Production', count: statusStats.approved, color: 'text-muted-foreground', variant: 'bg-muted/10' },
+            { label: 'In Transit', count: statusStats.shipped, color: 'text-primary', variant: 'bg-primary/10' },
+            { label: 'Completed', count: statusStats.received, color: 'text-success', variant: 'bg-success/10' },
           ].map((stat, index) => (
             <div
               key={stat.label}
-              className={`glass rounded-xl p-4 text-center animate-slide-up`}
+              className={cn("glass rounded-xl p-5 border border-border/50 animate-slide-up")}
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <p className={`text-2xl font-bold ${stat.color}`}>{stat.count}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
+              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center mb-3", stat.variant)}>
+                <div className={cn("w-2 h-2 rounded-full", stat.color.replace('text-', 'bg-'))} />
+              </div>
+              <p className={cn("text-3xl font-bold mb-1", stat.color)}>{stat.count}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">{stat.label}</p>
             </div>
           ))}
         </div>
 
         {/* Data Table */}
-        <div className="animate-slide-up [animation-delay:200ms]">
+        <div className="animate-slide-up [animation-delay:250ms]">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />
+              <p className="text-muted-foreground animate-pulse">Loading orders...</p>
             </div>
           ) : (
             <DataTable
               data={orders || []}
               columns={columns}
               searchKeys={['order_number']}
+              emptyMessage="No purchase orders found."
             />
           )}
         </div>
@@ -255,84 +249,102 @@ export default function PurchaseOrders() {
 
       {/* View Order Modal */}
       <Dialog open={!!viewOrderId} onOpenChange={(open) => !open && setViewOrderId(null)}>
-        <DialogContent className="max-w-2xl bg-card border-border">
+        <DialogContent className="max-w-2xl bg-card border-border border-2">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Order Details: {viewOrder?.order_number}
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-primary" />
+              </div>
+              PO #{viewOrder?.order_number}
             </DialogTitle>
           </DialogHeader>
-          
+
           {viewOrder && (
-            <div className="space-y-6 mt-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-8 mt-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 <div>
-                  <p className="text-sm text-muted-foreground">Supplier</p>
-                  <p className="font-medium text-foreground">{viewOrder.supplier?.name}</p>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Supplier</p>
+                  <p className="font-semibold text-foreground">{viewOrder.supplier?.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={getStatusConfig(viewOrder.status).variant}>
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Status</p>
+                  <Badge variant={getStatusConfig(viewOrder.status).variant} className="capitalize py-0">
                     {getStatusConfig(viewOrder.status).label}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Order Date</p>
-                  <p className="font-medium text-foreground">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Order Date</p>
+                  <p className="font-semibold text-foreground">
                     {new Date(viewOrder.order_date).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Expected Date</p>
-                  <p className="font-medium text-foreground">
-                    {viewOrder.expected_date ? new Date(viewOrder.expected_date).toLocaleDateString() : 'N/A'}
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Expected</p>
+                  <p className="font-semibold text-foreground">
+                    {viewOrder.expected_date ? new Date(viewOrder.expected_date).toLocaleDateString() : 'TBD'}
                   </p>
                 </div>
               </div>
 
               {viewOrder.items && viewOrder.items.length > 0 && (
-                <div className="glass rounded-lg p-4">
-                  <h4 className="font-medium text-foreground mb-3">Order Items</h4>
-                  <div className="space-y-2">
+                <div className="bg-secondary/30 rounded-2xl border border-border/50 overflow-hidden">
+                  <div className="bg-secondary/50 px-6 py-4 border-b border-border/50">
+                    <h4 className="text-xs uppercase tracking-widest font-bold text-foreground flex items-center gap-2">
+                      <Package className="w-4 h-4 text-primary" />
+                      Order manifest
+                    </h4>
+                  </div>
+                  <div className="px-6 py-4 space-y-4">
                     {viewOrder.items.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          {item.product?.name || 'Unknown'} × {item.quantity}
-                        </span>
-                        <span className="text-foreground">
-                          ${(item.quantity * Number(item.unit_cost)).toFixed(2)}
-                        </span>
+                      <div key={item.id} className="flex justify-between items-center text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-foreground">
+                            {item.product?.name || 'Unknown Item'}
+                          </span>
+                          <span className="text-xs text-muted-foreground">Unit cost: ${Number(item.unit_cost).toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center gap-8">
+                          <span className="text-muted-foreground font-mono">×{item.quantity}</span>
+                          <span className="text-foreground font-bold tabular-nums">
+                            ${(item.quantity * Number(item.unit_cost)).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     ))}
-                    <div className="border-t border-border pt-2 flex justify-between font-medium">
-                      <span className="text-foreground">Total</span>
-                      <span className="text-primary">${Number(viewOrder.total_amount).toLocaleString()}</span>
+                    <div className="border-t border-border/50 pt-4 flex justify-between items-end">
+                      <span className="text-sm font-bold uppercase tracking-widest">Grand Total</span>
+                      <span className="text-2xl font-black text-primary tabular-nums">
+                        ${Number(viewOrder.total_amount).toLocaleString()}
+                      </span>
                     </div>
                   </div>
                 </div>
               )}
 
               {viewOrder.notes && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Notes</p>
-                  <p className="text-foreground">{viewOrder.notes}</p>
+                <div className="bg-warning/5 border border-warning/10 rounded-xl p-4">
+                  <p className="text-[10px] uppercase tracking-wider font-bold text-warning mb-1 flex items-center gap-1.5">
+                    <Clock className="w-3 h-3" />
+                    Special Instructions
+                  </p>
+                  <p className="text-sm italic text-muted-foreground leading-relaxed">{viewOrder.notes}</p>
                 </div>
               )}
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="mt-8 gap-2">
             {isAdminOrManager && viewOrder?.status === 'pending' && (
               <>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => handleUpdateStatus(viewOrder.id, 'cancelled')}
-                  className="text-destructive"
+                  className="text-destructive hover:bg-destructive/10 rounded-full"
                 >
                   Cancel Order
                 </Button>
                 <Button
-                  className="bg-success hover:bg-success/90"
+                  className="bg-success hover:bg-success/90 rounded-full px-8 shadow-lg shadow-success/20"
                   onClick={() => handleUpdateStatus(viewOrder.id, 'approved')}
                 >
                   Approve Order
@@ -341,21 +353,21 @@ export default function PurchaseOrders() {
             )}
             {isAdminOrManager && viewOrder?.status === 'approved' && (
               <Button
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90 rounded-full px-8 shadow-lg shadow-primary/20"
                 onClick={() => handleUpdateStatus(viewOrder.id, 'shipped')}
               >
-                Mark as Shipped
+                Dispatch Shipment
               </Button>
             )}
             {viewOrder?.status === 'shipped' && (
               <Button
-                className="bg-success hover:bg-success/90"
+                className="bg-success hover:bg-success/90 rounded-full px-8 shadow-lg shadow-success/20"
                 onClick={() => {
                   setViewOrderId(null);
                   setReceiveOrderId(viewOrder.id);
                 }}
               >
-                Receive Order
+                Mark as Received
               </Button>
             )}
           </DialogFooter>
@@ -364,55 +376,62 @@ export default function PurchaseOrders() {
 
       {/* Receive Order Modal */}
       <Dialog open={!!receiveOrderId} onOpenChange={(open) => !open && setReceiveOrderId(null)}>
-        <DialogContent className="max-w-lg bg-card border-border">
+        <DialogContent className="max-w-lg bg-card border-border border-2">
           <DialogHeader>
-            <DialogTitle className="text-foreground flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Receive Order: {receiveOrderData?.order_number}
+            <DialogTitle className="text-2xl font-bold flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-success" />
+              </div>
+              Confirm Receipt
             </DialogTitle>
           </DialogHeader>
-          
+
           {receiveOrderData?.items && (
-            <div className="space-y-4 mt-4">
-              <p className="text-sm text-muted-foreground">
-                Enter the quantity received for each item:
+            <div className="space-y-6 mt-6">
+              <p className="text-sm text-muted-foreground bg-secondary/50 p-4 rounded-xl border border-border/50">
+                Verify the quantities received against the purchase order. This will update your inventory stock levels.
               </p>
-              {receiveOrderData.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{item.product?.name}</p>
-                    <p className="text-sm text-muted-foreground">Ordered: {item.quantity}</p>
+              <div className="space-y-4">
+                {receiveOrderData.items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-6 p-3 rounded-xl hover:bg-secondary/30 transition-colors">
+                    <div className="flex-1">
+                      <p className="font-bold text-foreground">{item.product?.name}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Package className="w-3 h-3" />
+                        Expected: {item.quantity} units
+                      </p>
+                    </div>
+                    <div className="w-24">
+                      <Label className="sr-only">Received</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        max={item.quantity}
+                        value={receivedQuantities[item.id] ?? item.quantity}
+                        onChange={(e) => setReceivedQuantities({
+                          ...receivedQuantities,
+                          [item.id]: parseInt(e.target.value) || 0,
+                        })}
+                        className="bg-secondary border-border rounded-lg text-center font-bold"
+                      />
+                    </div>
                   </div>
-                  <div className="w-24">
-                    <Label className="sr-only">Received Quantity</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max={item.quantity}
-                      value={receivedQuantities[item.id] ?? item.quantity}
-                      onChange={(e) => setReceivedQuantities({
-                        ...receivedQuantities,
-                        [item.id]: parseInt(e.target.value) || 0,
-                      })}
-                      className="bg-secondary border-border"
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReceiveOrderId(null)}>
-              Cancel
+          <DialogFooter className="mt-8 gap-2">
+            <Button variant="ghost" onClick={() => setReceiveOrderId(null)} className="rounded-full">
+              Discard
             </Button>
             <Button
-              className="bg-success hover:bg-success/90"
+              className="bg-success hover:bg-success/90 rounded-full px-8 shadow-lg shadow-success/20"
               onClick={handleReceiveOrder}
               disabled={receiveOrder.isPending}
             >
               {receiveOrder.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirm Receipt
+              Complete Intake
             </Button>
           </DialogFooter>
         </DialogContent>

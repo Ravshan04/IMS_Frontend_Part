@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Upload, Download, Edit, Trash2, Eye, History, Loader2 } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Download, Edit, Trash2, History, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
+import PageHeader from '@/components/layout/PageHeader';
 import DataTable from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,7 +19,6 @@ import { cn } from '@/lib/utils';
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { isAdmin, isAdminOrManager } = useAuth();
 
   const [filters, setFilters] = useState({
@@ -47,19 +47,20 @@ export default function Products() {
       const product = products.find(p => p.id === editId);
       if (product) {
         setEditProduct(product);
-        searchParams.delete('edit');
-        setSearchParams(searchParams);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('edit');
+        setSearchParams(newParams);
       }
     }
-  }, [searchParams, products]);
+  }, [searchParams, products, setSearchParams]);
 
-  const getStockStatus = (quantity: number, reorderLevel: number) => {
+  const getStockStatus = useCallback((quantity: number, reorderLevel: number) => {
     if (quantity <= 0) return { label: 'Out of Stock', variant: 'destructive' as const };
     if (quantity <= reorderLevel) return { label: 'Low Stock', variant: 'warning' as const };
     return { label: 'In Stock', variant: 'success' as const };
-  };
+  }, []);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     if (!products) return;
 
     const headers = ['SKU', 'Name', 'Description', 'Category', 'Supplier', 'Quantity', 'Reorder Level', 'Price', 'Cost', 'Location', 'Created At', 'Updated At'];
@@ -86,15 +87,15 @@ export default function Products() {
     a.download = `products-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, [products]);
 
-  const columns = [
+  const columns = useMemo(() => [
     {
       key: 'sku',
       header: 'SKU',
       sortable: true,
       render: (item: Product) => (
-        <span className="font-mono text-sm text-primary">{item.sku}</span>
+        <span className="font-mono text-sm text-primary font-medium">{item.sku}</span>
       ),
     },
     {
@@ -102,10 +103,10 @@ export default function Products() {
       header: 'Product',
       sortable: true,
       render: (item: Product) => (
-        <div>
-          <p className="font-medium text-foreground">{item.name}</p>
-          <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-            {item.description}
+        <div className="max-w-[250px]">
+          <p className="font-medium text-foreground truncate">{item.name}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {item.description || 'No description'}
           </p>
         </div>
       ),
@@ -114,7 +115,7 @@ export default function Products() {
       key: 'category',
       header: 'Category',
       render: (item: Product) => (
-        <Badge variant="outline" className="bg-secondary/50">
+        <Badge variant="outline" className="bg-secondary/30 border-border/50 font-normal">
           {item.category?.name || 'Uncategorized'}
         </Badge>
       ),
@@ -123,28 +124,20 @@ export default function Products() {
       key: 'supplier',
       header: 'Supplier',
       render: (item: Product) => (
-        <span className="text-muted-foreground">{item.supplier?.name || 'No supplier'}</span>
+        <span className="text-muted-foreground text-sm">{item.supplier?.name || 'No supplier'}</span>
       ),
     },
     {
       key: 'quantity',
-      header: 'Quantity',
+      header: 'Qty',
       sortable: true,
       render: (item: Product) => (
         <span className={cn(
-          'font-medium',
+          'font-semibold',
           item.quantity <= item.reorder_level ? 'text-warning' : 'text-foreground'
         )}>
           {item.quantity}
         </span>
-      ),
-    },
-    {
-      key: 'reorder_level',
-      header: 'Reorder Level',
-      sortable: true,
-      render: (item: Product) => (
-        <span className="text-muted-foreground">{item.reorder_level}</span>
       ),
     },
     {
@@ -156,38 +149,24 @@ export default function Products() {
       ),
     },
     {
-      key: 'cost',
-      header: 'Cost',
-      sortable: true,
-      render: (item: Product) => (
-        <span className="text-muted-foreground">${item.cost.toLocaleString()}</span>
-      ),
-    },
-    {
-      key: 'location',
-      header: 'Location',
-      render: (item: Product) => (
-        <span className="text-muted-foreground">{item.location || 'N/A'}</span>
-      ),
-    },
-    {
       key: 'status',
       header: 'Status',
       render: (item: Product) => {
         const status = getStockStatus(item.quantity, item.reorder_level);
-        return <Badge variant={status.variant}>{status.label}</Badge>;
+        return <Badge variant={status.variant} className="capitalize">{status.label}</Badge>;
       },
     },
     {
       key: 'actions',
       header: 'Actions',
       render: (item: Product) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             variant="ghost"
             size="icon"
             className="hover:text-primary h-8 w-8"
             onClick={() => setHistoryProduct(item)}
+            title="History"
           >
             <History className="w-4 h-4" />
           </Button>
@@ -196,6 +175,7 @@ export default function Products() {
             size="icon"
             className="hover:text-primary h-8 w-8"
             onClick={() => setEditProduct(item)}
+            title="Edit"
           >
             <Edit className="w-4 h-4" />
           </Button>
@@ -205,6 +185,7 @@ export default function Products() {
               size="icon"
               className="hover:text-destructive h-8 w-8"
               onClick={() => setDeleteProduct(item)}
+              title="Delete"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -212,41 +193,41 @@ export default function Products() {
         </div>
       ),
     },
-  ];
+  ], [isAdmin, getStockStatus]);
+
+  const clearFilters = useCallback(() => {
+    setFilters({ categoryId: '', supplierId: '', lowStockOnly: false });
+  }, []);
 
   return (
     <MainLayout>
-      <div className="p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8 animate-fade-in">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Products</h1>
-            <p className="text-muted-foreground">Manage your product inventory</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" className="border-border" onClick={handleExport} disabled={!products?.length}>
-              <Download className="w-4 h-4 mr-2" />
-              Export
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+        <PageHeader
+          title="Products"
+          description="Manage your product inventory and stock levels."
+        >
+          <Button variant="outline" className="border-border hidden sm:flex" onClick={handleExport} disabled={!products?.length}>
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          {isAdminOrManager && (
+            <Button className="bg-primary hover:bg-primary/90 shadow-sm" onClick={() => setCreateModalOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Product
             </Button>
-            {isAdminOrManager && (
-              <Button className="bg-primary hover:bg-primary/90" onClick={() => setCreateModalOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Product
-              </Button>
-            )}
-          </div>
-        </div>
+          )}
+        </PageHeader>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3 mb-6 animate-fade-in [animation-delay:100ms]">
           <Select
             value={filters.categoryId}
-            onValueChange={(value) => setFilters({ ...filters, categoryId: value === 'all' ? '' : value })}
+            onValueChange={(value) => setFilters(f => ({ ...f, categoryId: value === 'all' ? '' : value }))}
           >
-            <SelectTrigger className="w-[180px] bg-secondary border-border">
+            <SelectTrigger className="w-[160px] bg-secondary/50 border-border">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
+            <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories?.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
@@ -256,12 +237,12 @@ export default function Products() {
 
           <Select
             value={filters.supplierId}
-            onValueChange={(value) => setFilters({ ...filters, supplierId: value === 'all' ? '' : value })}
+            onValueChange={(value) => setFilters(f => ({ ...f, supplierId: value === 'all' ? '' : value }))}
           >
-            <SelectTrigger className="w-[180px] bg-secondary border-border">
+            <SelectTrigger className="w-[160px] bg-secondary/50 border-border">
               <SelectValue placeholder="All Suppliers" />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
+            <SelectContent>
               <SelectItem value="all">All Suppliers</SelectItem>
               {suppliers?.map((sup) => (
                 <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
@@ -271,36 +252,41 @@ export default function Products() {
 
           <Button
             variant={filters.lowStockOnly ? 'default' : 'outline'}
+            size="sm"
             className={cn(
-              'border-border',
-              filters.lowStockOnly && 'bg-warning text-warning-foreground hover:bg-warning/90'
+              'border-border h-9',
+              filters.lowStockOnly && 'bg-warning text-warning-foreground hover:bg-warning/90 border-warning'
             )}
-            onClick={() => setFilters({ ...filters, lowStockOnly: !filters.lowStockOnly })}
+            onClick={() => setFilters(f => ({ ...f, lowStockOnly: !f.lowStockOnly }))}
           >
-            Low Stock Only
+            Low Stock
           </Button>
 
           {(filters.categoryId || filters.supplierId || filters.lowStockOnly) && (
             <Button
               variant="ghost"
-              onClick={() => setFilters({ categoryId: '', supplierId: '', lowStockOnly: false })}
+              size="sm"
+              className="h-9 text-muted-foreground hover:text-foreground"
+              onClick={clearFilters}
             >
-              Clear Filters
+              Clear
             </Button>
           )}
         </div>
 
         {/* Data Table */}
-        <div className="animate-slide-up">
+        <div className="animate-slide-up [animation-delay:200ms]">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />
+              <p className="text-muted-foreground animate-pulse">Loading products...</p>
             </div>
           ) : (
             <DataTable
               data={products || []}
               columns={columns}
               searchKeys={['name', 'sku', 'description']}
+              emptyMessage="No products found matching your criteria."
             />
           )}
         </div>
