@@ -20,10 +20,10 @@ export default function QuickAddProductModal({ open, onOpenChange }: QuickAddPro
     const [formData, setFormData] = useState({
         name: '',
         sku: '',
-        quantity: '',
-        price: '',
+        barcode: '',
+        unit: 'Piece',
         cost: '',
-        reorder_level: '',
+        price: '',
         category_id: '',
     });
 
@@ -33,24 +33,22 @@ export default function QuickAddProductModal({ open, onOpenChange }: QuickAddPro
         await createProduct.mutateAsync({
             name: formData.name,
             sku: formData.sku,
-            quantity: Number(formData.quantity),
-            price: Number(formData.price),
+            barcode: formData.barcode || '',
+            unit: formData.unit || 'Piece',
             cost: Number(formData.cost),
-            reorder_level: Number(formData.reorder_level),
+            price: Number(formData.price),
             category_id: formData.category_id || null,
-            supplier_id: null,
             description: null,
-            location: null,
         });
 
         // Reset form
         setFormData({
             name: '',
             sku: '',
-            quantity: '',
-            price: '',
+            barcode: '',
+            unit: 'Piece',
             cost: '',
-            reorder_level: '',
+            price: '',
             category_id: '',
         });
         onOpenChange(false);
@@ -89,26 +87,20 @@ export default function QuickAddProductModal({ open, onOpenChange }: QuickAddPro
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <Label htmlFor="quantity" className="text-foreground">Quantity *</Label>
+                            <Label htmlFor="barcode" className="text-foreground">Barcode</Label>
                             <Input
-                                id="quantity"
-                                type="number"
-                                value={formData.quantity}
-                                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                                required
-                                min="0"
+                                id="barcode"
+                                value={formData.barcode}
+                                onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
                                 className="bg-background border-border text-foreground"
                             />
                         </div>
                         <div>
-                            <Label htmlFor="reorder_level" className="text-foreground">Reorder Level *</Label>
+                            <Label htmlFor="unit" className="text-foreground">Unit</Label>
                             <Input
-                                id="reorder_level"
-                                type="number"
-                                value={formData.reorder_level}
-                                onChange={(e) => setFormData({ ...formData, reorder_level: e.target.value })}
-                                required
-                                min="0"
+                                id="unit"
+                                value={formData.unit}
+                                onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                                 className="bg-background border-border text-foreground"
                             />
                         </div>
@@ -129,7 +121,7 @@ export default function QuickAddProductModal({ open, onOpenChange }: QuickAddPro
                             />
                         </div>
                         <div>
-                            <Label htmlFor="price" className="text-foreground">Price *</Label>
+                            <Label htmlFor="price" className="text-foreground">Selling Price *</Label>
                             <Input
                                 id="price"
                                 type="number"

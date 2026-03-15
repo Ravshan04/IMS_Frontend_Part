@@ -20,6 +20,7 @@ const notificationIcons: Record<NotificationType, React.ElementType> = {
   order_shipped: Truck,
   order_received: CheckCircle,
   order_cancelled: XCircle,
+  expired_stock: AlertTriangle,
   system: Bell,
 };
 
@@ -30,6 +31,7 @@ const notificationColors: Record<NotificationType, string> = {
   order_shipped: 'text-primary',
   order_received: 'text-success',
   order_cancelled: 'text-destructive',
+  expired_stock: 'text-warning',
   system: 'text-muted-foreground',
 };
 

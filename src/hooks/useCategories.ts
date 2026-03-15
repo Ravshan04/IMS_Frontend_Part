@@ -1,30 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiService } from '@/services/apiService';
 import { Category } from '@/types/database';
+import { CategoryDto } from '@/types/api';
+import { mapCategoryDto } from '@/services/apiMappers';
 import { useToast } from '@/hooks/use-toast';
-import { mockService } from '@/services/mockData';
 
 export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      // Check if we are in mock mode
-      const isMockMode = localStorage.getItem('mockSession');
-
-      if (isMockMode) {
-        return mockService.get('categories') as Category[];
+      try {
+        const data = await apiService.get<CategoryDto[]>('/categories');
+        return data.map(mapCategoryDto);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+        throw error;
       }
-
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
-
-      if (error) {
-        console.warn('Supabase fetch failed, falling back to mock data', error);
-        return mockService.get('categories') as Category[];
-      }
-      return data as Category[];
     },
   });
 }
@@ -33,23 +24,13 @@ export function useCategory(id: string) {
   return useQuery({
     queryKey: ['category', id],
     queryFn: async () => {
-      const isMockMode = localStorage.getItem('mockSession');
-
-      if (isMockMode) {
-        return mockService.getById('categories', id) as Category;
+      try {
+        const data = await apiService.get<CategoryDto>(`/categories/${id}`);
+        return mapCategoryDto(data);
+      } catch (error) {
+        console.error(`Failed to fetch category ${id}:`, error);
+        throw error;
       }
-
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        console.warn('Supabase fetch failed, falling back to mock data', error);
-        return mockService.getById('categories', id) as Category;
-      }
-      return data as Category;
     },
     enabled: !!id,
   });
@@ -61,19 +42,12 @@ export function useCreateCategory() {
 
   return useMutation({
     mutationFn: async (category: { name: string; description?: string; parent_id?: string | null }) => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .insert(category)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn('Supabase create failed, falling back to mock data', error);
-        return mockService.insert('categories', category);
-      }
+      const data = await apiService.post<CategoryDto>('/categories', {
+        name: category.name,
+        description: category.description ?? '',
+        parentId: category.parent_id ?? null,
+      });
+      return mapCategoryDto(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -91,20 +65,12 @@ export function useUpdateCategory() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Category> }) => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .update(updates)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } catch (error) {
-        console.warn('Supabase update failed, falling back to mock data', error);
-        return mockService.update('categories', id, updates);
-      }
+      const data = await apiService.put<CategoryDto>(`/categories/${id}`, {
+        name: updates.name ?? '',
+        description: updates.description ?? '',
+        parentId: updates.parent_id ?? null,
+      });
+      return mapCategoryDto(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
@@ -122,17 +88,7 @@ export function useDeleteCategory() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      try {
-        const { error } = await supabase
-          .from('categories')
-          .delete()
-          .eq('id', id);
-
-        if (error) throw error;
-      } catch (error) {
-        console.warn('Supabase delete failed, falling back to mock data', error);
-        mockService.delete('categories', id);
-      }
+      await apiService.delete(`/categories/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });

@@ -1,6 +1,23 @@
-export type AppRole = 'admin' | 'manager' | 'staff';
-export type OrderStatus = 'pending' | 'approved' | 'shipped' | 'received' | 'cancelled';
-export type NotificationType = 'low_stock' | 'order_created' | 'order_approved' | 'order_shipped' | 'order_received' | 'order_cancelled' | 'system';
+export type AppRole = 'Owner' | 'Admin' | 'Manager' | 'WarehouseOperator' | 'Viewer';
+export type OrderStatus =
+  | 'draft'
+  | 'pending'
+  | 'approved'
+  | 'confirmed'
+  | 'packed'
+  | 'shipped'
+  | 'received'
+  | 'delivered'
+  | 'cancelled';
+export type NotificationType =
+  | 'low_stock'
+  | 'order_created'
+  | 'order_approved'
+  | 'order_shipped'
+  | 'order_received'
+  | 'order_cancelled'
+  | 'expired_stock'
+  | 'system';
 export type CustomerStatus = 'active' | 'inactive';
 
 export interface Profile {
@@ -52,17 +69,19 @@ export interface Product {
   name: string;
   description: string | null;
   category_id: string | null;
-  supplier_id: string | null;
-  quantity: number;
-  reorder_level: number;
-  price: number;
   cost: number;
-  location: string | null;
+  price: number;
   created_at: string;
   updated_at: string;
+  // Backend fields (optional)
+  barcode?: string;
+  unit?: string;
+  weight?: number;
+  length?: number;
+  width?: number;
+  height?: number;
   // Joined data
   category?: Category;
-  supplier?: Supplier;
 }
 
 export interface Customer {
@@ -82,6 +101,7 @@ export interface PurchaseOrder {
   id: string;
   order_number: string;
   supplier_id: string | null;
+  warehouse_id?: string | null;
   status: OrderStatus;
   total_amount: number;
   order_date: string;
@@ -129,5 +149,37 @@ export interface ProductHistory {
   changed_by: string | null;
   created_at: string;
   // Joined data
+  profile?: Profile;
+}
+
+export interface Warehouse {
+  id: string;
+  name: string;
+  location: string | null;
+  description: string | null;
+  organization_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type AssetStatus = 'InWarehouse' | 'Assigned' | 'InRepair' | 'Lost' | 'Retired';
+export type AssetCondition = 'New' | 'Good' | 'Damaged' | 'Broken';
+
+export interface AssetItem {
+  id: string;
+  asset_code: string;
+  product_id: string;
+  warehouse_id: string;
+  serial_number: string | null;
+  status: AssetStatus;
+  condition: AssetCondition;
+  assigned_to_user_id: string | null;
+  notes: string | null;
+  organization_id: string;
+  created_at: string;
+  updated_at: string;
+  // Joined data
+  product?: Product;
+  warehouse?: Warehouse;
   profile?: Profile;
 }

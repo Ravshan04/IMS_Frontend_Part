@@ -106,7 +106,7 @@ export default function Customers() {
                 variant="ghost"
                 size="icon"
                 className={cn("h-8 w-8", item.status === 'active' ? 'hover:text-destructive' : 'hover:text-success')}
-                onClick={() => toggleStatus.mutate({ id: item.id, currentStatus: item.status })}
+                onClick={() => toggleStatus.mutate(item)}
                 disabled={toggleStatus.isPending}
                 title={item.status === 'active' ? 'Deactivate' : 'Activate'}
               >

@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { categoryDistribution } from '@/data/mockData';
+import { useCategoryDistribution } from '@/hooks/useReporting';
+import { Loader2 } from 'lucide-react';
 
 const COLORS = [
   'hsl(187, 85%, 53%)',
@@ -10,13 +11,23 @@ const COLORS = [
 ];
 
 export default function CategoryPieChart() {
+  const { data: distributionData, isLoading } = useCategoryDistribution();
+
+  if (isLoading) {
+    return (
+      <div className="glass rounded-xl p-6 h-[400px] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary opacity-50" />
+      </div>
+    );
+  }
+
   return (
     <div className="glass rounded-xl p-6 h-[400px]">
       <h3 className="text-lg font-semibold text-foreground mb-6">Category Distribution</h3>
       <ResponsiveContainer width="100%" height="85%">
         <PieChart>
           <Pie
-            data={categoryDistribution}
+            data={distributionData || []}
             cx="50%"
             cy="50%"
             innerRadius={60}
@@ -24,7 +35,7 @@ export default function CategoryPieChart() {
             paddingAngle={5}
             dataKey="value"
           >
-            {categoryDistribution.map((_, index) => (
+            {(distributionData || []).map((_, index) => (
               <Cell 
                 key={`cell-${index}`} 
                 fill={COLORS[index % COLORS.length]}

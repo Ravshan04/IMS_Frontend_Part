@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useProducts } from '@/hooks/useProducts';
 import { useCreatePurchaseOrder } from '@/hooks/usePurchaseOrders';
+import { useWarehouses } from '@/hooks/useWarehouses';
 import { Plus, Trash2, Loader2, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ interface OrderItem {
 export default function CreateOrderModal({ open, onOpenChange, preselectedProductId }: CreateOrderModalProps) {
   const [step, setStep] = useState(1);
   const [supplierId, setSupplierId] = useState('');
+  const [warehouseId, setWarehouseId] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<OrderItem[]>([]);
@@ -34,6 +36,7 @@ export default function CreateOrderModal({ open, onOpenChange, preselectedProduc
 
   const { data: suppliers } = useSuppliers();
   const { data: products } = useProducts();
+  const { data: warehouses } = useWarehouses();
   const createOrder = useCreatePurchaseOrder();
 
   const selectedSupplier = suppliers?.find(s => s.id === supplierId);
@@ -66,8 +69,7 @@ export default function CreateOrderModal({ open, onOpenChange, preselectedProduc
     await createOrder.mutateAsync({
       order: {
         supplier_id: supplierId,
-        expected_date: expectedDate || undefined,
-        notes: notes || undefined,
+        warehouse_id: warehouseId,
       },
       items: items.map(({ product_id, quantity, unit_cost }) => ({
         product_id,
@@ -79,13 +81,14 @@ export default function CreateOrderModal({ open, onOpenChange, preselectedProduc
     // Reset form
     setStep(1);
     setSupplierId('');
+    setWarehouseId('');
     setExpectedDate('');
     setNotes('');
     setItems([]);
     onOpenChange(false);
   };
 
-  const canProceedToStep2 = !!supplierId;
+  const canProceedToStep2 = !!supplierId && !!warehouseId;
   const canProceedToStep3 = items.length > 0;
   const canSubmit = canProceedToStep2 && canProceedToStep3;
 
@@ -136,6 +139,21 @@ export default function CreateOrderModal({ open, onOpenChange, preselectedProduc
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Select Warehouse *</Label>
+              <Select value={warehouseId} onValueChange={setWarehouseId}>
+                <SelectTrigger className="bg-secondary border-border">
+                  <SelectValue placeholder="Choose a warehouse" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border">
+                  {warehouses?.map((warehouse) => (
+                    <SelectItem key={warehouse.id} value={warehouse.id}>
+                      {warehouse.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {selectedSupplier && (
               <div className="glass rounded-lg p-4 space-y-2">
@@ -174,7 +192,7 @@ export default function CreateOrderModal({ open, onOpenChange, preselectedProduc
                 <SelectContent className="bg-popover border-border max-h-[200px]">
                   {products?.filter(p => !items.find(i => i.product_id === p.id)).map((product) => (
                     <SelectItem key={product.id} value={product.id}>
-                      {product.name} ({product.sku}) - Stock: {product.quantity}
+                      {product.name} ({product.sku})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -203,7 +221,7 @@ export default function CreateOrderModal({ open, onOpenChange, preselectedProduc
                         onChange={(e) => handleUpdateItem(item.product_id, 'quantity', parseInt(e.target.value) || 1)}
                         className="w-20 bg-secondary border-border"
                       />
-                      <span className="text-muted-foreground">×</span>
+                      <span className="text-muted-foreground">x</span>
                       <Input
                         type="number"
                         min="0"
@@ -293,7 +311,7 @@ export default function CreateOrderModal({ open, onOpenChange, preselectedProduc
                 {items.map((item) => (
                   <div key={item.product_id} className="flex justify-between">
                     <span className="text-muted-foreground">
-                      {item.product_name} × {item.quantity}
+                      {item.product_name} x {item.quantity}
                     </span>
                     <span className="text-foreground">
                       ${(item.quantity * item.unit_cost).toFixed(2)}

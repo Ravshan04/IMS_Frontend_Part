@@ -1,21 +1,54 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { AppRole, Profile } from '@/types/database';
+import { Profile, AppRole } from '@/types/database';
+import { apiService } from '@/services/apiService';
+
+interface User {
+  id: string;
+  email: string;
+}
+
+interface Session {
+  token: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  organizationId: string;
+  roles: string[];
+  permissions: string[];
+}
+
+interface SessionStorage extends Session {
+  userId?: string;
+  access_token?: string;
+}
+
+interface AuthResponse {
+  token: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  organizationId: string;
+  roles: string[];
+  permissions: string[];
+  userId?: string;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  role: AppRole | null;
+  role: string | null;
+  permissions: string[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  mockSignIn: () => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
-  isAdmin: boolean;
-  isManager: boolean;
+  hasPermission: (permission: string) => boolean;
   isAdminOrManager: boolean;
+  canManageCatalog: boolean;
+  canManageInventory: boolean;
+  canManageUsers: boolean;
+  canReadEverything: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,169 +57,108 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener BEFORE checking for existing session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          // Defer data fetching to avoid blocking auth state update
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
-        } else {
-          // Check for mock session in localStorage
-          const mockSessionStr = localStorage.getItem('mockSession');
-          if (mockSessionStr) {
-            const mockSession = JSON.parse(mockSessionStr);
-            setSession(mockSession);
-            setUser(mockSession.user);
-            // Mock profile and role
-            setProfile({
-              id: mockSession.user.id,
-              first_name: 'Mock',
-              last_name: 'User',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            } as Profile);
-            setRole('admin'); // Default to admin for testing
-          } else {
-            setProfile(null);
-            setRole(null);
-          }
-        }
-        setLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserData(session.user.id);
+    const checkAuth = async () => {
+      const storedSession = localStorage.getItem('ombor_session');
+      if (storedSession) {
+        const sessionData = JSON.parse(storedSession) as SessionStorage;
+        const userId = sessionData.userId ?? '1';
+        const now = new Date().toISOString();
+        setSession(sessionData);
+        setUser({ id: userId, email: sessionData.email });
+        setProfile({
+          id: userId,
+          first_name: sessionData.firstName ?? null,
+          last_name: sessionData.lastName ?? null,
+          email: sessionData.email ?? null,
+          phone: null,
+          avatar_url: null,
+          created_at: now,
+          updated_at: now,
+        });
+        setRole(sessionData.roles?.[0] || 'Viewer');
+        setPermissions(sessionData.permissions || []);
       }
       setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    checkAuth();
   }, []);
-
-  const fetchUserData = async (userId: string) => {
-    try {
-      // Fetch profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (profileData) {
-        setProfile(profileData as Profile);
-      }
-
-      // Fetch role
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-
-      if (roleData) {
-        setRole(roleData.role as AppRole);
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      return { error: null };
-    } catch (error) {
-      console.warn('Supabase auth failed, falling back to mock auth', error);
-      // Create mock session
-      const mockUser = {
-        id: 'mock-user-id',
-        email: email,
-        aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        role: 'authenticated',
-        app_metadata: {},
-        user_metadata: {},
-        identities: [],
-        phone: '',
-      } as User;
-
-      const mockSession = {
-        access_token: 'mock-access-token',
-        refresh_token: 'mock-refresh-token',
-        expires_in: 3600,
-        token_type: 'bearer',
-        user: mockUser,
-      } as Session;
-
-      localStorage.setItem('mockSession', JSON.stringify(mockSession));
-      setSession(mockSession);
-      setUser(mockUser);
+      const response = await apiService.post<AuthResponse>('/auth/login', { email, password });
+      const sessionData: Session = {
+        token: response.token,
+        email: response.email,
+        firstName: response.firstName,
+        lastName: response.lastName,
+        organizationId: response.organizationId,
+        roles: response.roles,
+        permissions: response.permissions
+      };
+      
+      localStorage.setItem('ombor_session', JSON.stringify(sessionData));
+      setSession(sessionData);
+      const userId = response.userId ?? '1';
+      const now = new Date().toISOString();
+      setUser({ id: userId, email: response.email });
       setProfile({
-        id: mockUser.id,
-        first_name: 'Mock',
-        last_name: 'User',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      } as Profile);
-      setRole('admin');
-
+        id: userId,
+        first_name: response.firstName ?? null,
+        last_name: response.lastName ?? null,
+        email: response.email ?? null,
+        phone: null,
+        avatar_url: null,
+        created_at: now,
+        updated_at: now,
+      });
+      setRole(response.roles?.[0] || 'Viewer');
+      setPermissions(response.permissions || []);
+      
       return { error: null };
+    } catch (error: unknown) {
+      console.error('Login failed:', error);
+      return { error: error instanceof Error ? error : new Error('Login failed') };
     }
-  };
-
-  const mockSignIn = async () => {
-    return signIn('mock@example.com', 'password');
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin,
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          },
-        },
+      await apiService.post<void>('/auth/register', { 
+        email, 
+        password, 
+        firstName, 
+        lastName,
+        organizationId: '00000000-0000-0000-0000-000000000001'
       });
-      if (error) throw error;
-      return { error: null };
-    } catch (error) {
-      console.warn('Supabase registration failed, falling back to mock auth', error);
-      // Auto-login with mock credentials after "registration"
       return signIn(email, password);
+    } catch (error: unknown) {
+      return { error: error instanceof Error ? error : new Error('Registration failed') };
     }
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem('mockSession');
+    localStorage.removeItem('ombor_session');
     setUser(null);
     setSession(null);
     setProfile(null);
     setRole(null);
+    setPermissions([]);
   };
 
-  const isAdmin = role === 'admin';
-  const isManager = role === 'manager';
-  const isAdminOrManager = isAdmin || isManager;
+  const hasPermission = (permission: string) => permissions.includes(permission);
+
+  const isAdminOrManager = role === 'Owner' || role === 'Admin' || role === 'Manager';
+  
+  const canManageCatalog = hasPermission('CatalogWrite');
+  const canManageInventory = hasPermission('InventoryWrite');
+  const canManageUsers = hasPermission('UserWrite');
+  const canReadEverything = hasPermission('InventoryRead') || hasPermission('CatalogRead');
 
   return (
     <AuthContext.Provider
@@ -195,14 +167,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         role,
+        permissions,
         loading,
         signIn,
-        mockSignIn,
         signUp,
         signOut,
-        isAdmin,
-        isManager,
+        hasPermission,
         isAdminOrManager,
+        canManageCatalog,
+        canManageInventory,
+        canManageUsers,
+        canReadEverything,
       }}
     >
       {children}

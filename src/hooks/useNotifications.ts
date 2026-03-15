@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiService } from '@/services/apiService';
 import { Notification } from '@/types/database';
+import { mapNotificationDto } from '@/services/apiMappers';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockService } from '@/services/mockData';
+import { NotificationDto } from '@/types/api';
 
 export function useNotifications() {
   const { user } = useAuth();
@@ -12,24 +13,12 @@ export function useNotifications() {
     queryFn: async () => {
       if (!user) return [];
 
-      const isMockMode = localStorage.getItem('mockSession');
-
-      if (isMockMode) {
-        return mockService.get<Notification>('notifications');
-      }
-
       try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        return data as Notification[];
+        const data = await apiService.get<NotificationDto[]>('/notifications');
+        return data.map(mapNotificationDto);
       } catch (error) {
-        console.warn('Supabase fetch failed, falling back to mock data', error);
-        return mockService.get<Notification>('notifications');
+        console.error('Failed to fetch notifications:', error);
+        throw error;
       }
     },
     enabled: !!user,
@@ -44,26 +33,12 @@ export function useUnreadNotificationsCount() {
     queryFn: async () => {
       if (!user) return 0;
 
-      const isMockMode = localStorage.getItem('mockSession');
-
-      if (isMockMode) {
-        const notifications = mockService.get<Notification>('notifications');
-        return notifications.filter(n => !n.read).length;
-      }
-
       try {
-        const { count, error } = await supabase
-          .from('notifications')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('read', false);
-
-        if (error) throw error;
-        return count || 0;
-      } catch (error) {
-        console.warn('Supabase fetch failed, falling back to mock data', error);
-        const notifications = mockService.get<Notification>('notifications');
+        const notifications = (await apiService.get<NotificationDto[]>('/notifications')).map(mapNotificationDto);
         return notifications.filter(n => !n.read).length;
+      } catch (error) {
+        console.error('Failed to fetch unread notifications count:', error);
+        throw error;
       }
     },
     enabled: !!user,
@@ -75,17 +50,7 @@ export function useMarkNotificationAsRead() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      try {
-        const { error } = await supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('id', id);
-
-        if (error) throw error;
-      } catch (error) {
-        console.warn('Supabase update failed, falling back to mock data', error);
-        mockService.update<Notification>('notifications', id, { read: true });
-      }
+      await apiService.patch(`/notifications/${id}/read`, {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -101,24 +66,7 @@ export function useMarkAllNotificationsAsRead() {
   return useMutation({
     mutationFn: async () => {
       if (!user) return;
-
-      try {
-        const { error } = await supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('user_id', user.id)
-          .eq('read', false);
-
-        if (error) throw error;
-      } catch (error) {
-        console.warn('Supabase update failed, falling back to mock data', error);
-        const notifications = mockService.get<Notification>('notifications');
-        notifications.forEach(n => {
-          if (!n.read) {
-            mockService.update<Notification>('notifications', n.id, { read: true });
-          }
-        });
-      }
+      await apiService.post('/notifications/read-all', {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -127,23 +75,4 @@ export function useMarkAllNotificationsAsRead() {
   });
 }
 
-export function useCreateNotification() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (notification: Omit<Notification, 'id' | 'created_at'>) => {
-      const { data, error } = await supabase
-        .from('notifications')
-        .insert(notification)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications-count'] });
-    },
-  });
-}
+// Backend does not expose create notification endpoint for clients.

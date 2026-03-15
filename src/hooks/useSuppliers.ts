@@ -1,19 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiService } from '@/services/apiService';
 import { Supplier } from '@/types/database';
+import { SupplierDto } from '@/types/api';
+import { mapSupplierDto } from '@/services/apiMappers';
 import { useToast } from '@/hooks/use-toast';
 
 export function useSuppliers() {
   return useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      return data as Supplier[];
+      try {
+        const data = await apiService.get<SupplierDto[]>('/suppliers');
+        return data.map(mapSupplierDto);
+      } catch (error) {
+        console.error('Failed to fetch suppliers:', error);
+        throw error;
+      }
     },
   });
 }
@@ -22,14 +24,13 @@ export function useSupplier(id: string) {
   return useQuery({
     queryKey: ['supplier', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data as Supplier;
+      try {
+        const data = await apiService.get<SupplierDto>(`/suppliers/${id}`);
+        return mapSupplierDto(data);
+      } catch (error) {
+        console.error(`Failed to fetch supplier ${id}:`, error);
+        throw error;
+      }
     },
     enabled: !!id,
   });
@@ -41,14 +42,16 @@ export function useCreateSupplier() {
 
   return useMutation({
     mutationFn: async (supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at' | 'product_count'>) => {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .insert(supplier)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const data = await apiService.post<SupplierDto>('/suppliers', {
+        name: supplier.name,
+        contactPerson: supplier.contact_person ?? '',
+        email: supplier.email ?? '',
+        phone: supplier.phone ?? '',
+        address: supplier.address ?? '',
+        rating: supplier.rating ?? 0,
+        leadTime: supplier.lead_time ?? 0,
+      });
+      return mapSupplierDto(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
@@ -66,15 +69,16 @@ export function useUpdateSupplier() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Supplier> }) => {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const data = await apiService.put<SupplierDto>(`/suppliers/${id}`, {
+        name: updates.name ?? '',
+        contactPerson: updates.contact_person ?? '',
+        email: updates.email ?? '',
+        phone: updates.phone ?? '',
+        address: updates.address ?? '',
+        rating: updates.rating ?? 0,
+        leadTime: updates.lead_time ?? 0,
+      });
+      return mapSupplierDto(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
@@ -92,12 +96,7 @@ export function useDeleteSupplier() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('suppliers')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await apiService.delete(`/suppliers/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });

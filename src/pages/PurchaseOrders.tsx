@@ -7,6 +7,8 @@ import DataTable from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { usePurchaseOrders, usePurchaseOrder, useUpdatePurchaseOrderStatus, useReceivePurchaseOrder } from '@/hooks/usePurchaseOrders';
+import { useSuppliers } from '@/hooks/useSuppliers';
+import { useProducts } from '@/hooks/useProducts';
 import { useAuth } from '@/contexts/AuthContext';
 import CreateOrderModal from '@/components/orders/CreateOrderModal';
 import { PurchaseOrder, OrderStatus } from '@/types/database';
@@ -23,6 +25,11 @@ export default function PurchaseOrders() {
   const { data: orders, isLoading } = usePurchaseOrders({ supplierId });
   const updateStatus = useUpdatePurchaseOrderStatus();
   const receiveOrder = useReceivePurchaseOrder();
+  const { data: suppliers } = useSuppliers();
+  const { data: products } = useProducts();
+
+  const supplierMap = useMemo(() => new Map((suppliers || []).map(s => [s.id, s])), [suppliers]);
+  const productMap = useMemo(() => new Map((products || []).map(p => [p.id, p])), [products]);
 
   const [createModalOpen, setCreateModalOpen] = useState(searchParams.get('create') === 'true');
   const [viewOrderId, setViewOrderId] = useState<string | null>(searchParams.get('view'));
@@ -53,6 +60,8 @@ export default function PurchaseOrders() {
         return { label: 'Received', variant: 'success' as const, icon: CheckCircle };
       case 'cancelled':
         return { label: 'Cancelled', variant: 'destructive' as const, icon: XCircle };
+      default:
+        return { label: status, variant: 'secondary' as const, icon: Clock };
     }
   }, []);
 
@@ -62,22 +71,15 @@ export default function PurchaseOrders() {
   }, [updateStatus]);
 
   const handleReceiveOrder = useCallback(async () => {
-    if (!receiveOrderData?.items) return;
-
-    const receivedItems = receiveOrderData.items.map((item) => ({
-      itemId: item.id,
-      productId: item.product_id!,
-      receivedQuantity: receivedQuantities[item.id] ?? item.quantity,
-    }));
+    if (!receiveOrderData) return;
 
     await receiveOrder.mutateAsync({
       orderId: receiveOrderData.id,
-      receivedItems,
     });
 
     setReceiveOrderId(null);
     setReceivedQuantities({});
-  }, [receiveOrderData, receivedQuantities, receiveOrder]);
+  }, [receiveOrderData, receiveOrder]);
 
   const statusStats = useMemo(() => {
     if (!orders) return { pending: 0, approved: 0, shipped: 0, received: 0 };
@@ -102,7 +104,7 @@ export default function PurchaseOrders() {
       key: 'supplier',
       header: 'Supplier',
       render: (item: PurchaseOrder) => (
-        <span className="font-medium text-foreground">{item.supplier?.name || 'Unknown'}</span>
+        <span className="font-medium text-foreground">{supplierMap.get(item.supplier_id || '')?.name || 'Unknown'}</span>
       ),
     },
     {
@@ -184,7 +186,7 @@ export default function PurchaseOrders() {
         </div>
       ),
     },
-  ], [isAdminOrManager, getStatusConfig, handleUpdateStatus]);
+  ], [isAdminOrManager, getStatusConfig, handleUpdateStatus, supplierMap]);
 
   return (
     <MainLayout>
@@ -295,22 +297,24 @@ export default function PurchaseOrders() {
                     </h4>
                   </div>
                   <div className="px-6 py-4 space-y-4">
-                    {viewOrder.items.map((item) => (
+                    {viewOrder.items.map((item) => {
+                      const product = productMap.get(item.product_id || '');
+                      return (
                       <div key={item.id} className="flex justify-between items-center text-sm">
                         <div className="flex flex-col">
                           <span className="font-semibold text-foreground">
-                            {item.product?.name || 'Unknown Item'}
+                            {product?.name || 'Unknown Item'}
                           </span>
                           <span className="text-xs text-muted-foreground">Unit cost: ${Number(item.unit_cost).toFixed(2)}</span>
                         </div>
                         <div className="flex items-center gap-8">
-                          <span className="text-muted-foreground font-mono">×{item.quantity}</span>
+                          <span className="text-muted-foreground font-mono">x{item.quantity}</span>
                           <span className="text-foreground font-bold tabular-nums">
                             ${(item.quantity * Number(item.unit_cost)).toFixed(2)}
                           </span>
                         </div>
                       </div>
-                    ))}
+                    )})}
                     <div className="border-t border-border/50 pt-4 flex justify-between items-end">
                       <span className="text-sm font-bold uppercase tracking-widest">Grand Total</span>
                       <span className="text-2xl font-black text-primary tabular-nums">
@@ -392,10 +396,12 @@ export default function PurchaseOrders() {
                 Verify the quantities received against the purchase order. This will update your inventory stock levels.
               </p>
               <div className="space-y-4">
-                {receiveOrderData.items.map((item) => (
+                {receiveOrderData.items.map((item) => {
+                  const product = productMap.get(item.product_id || '');
+                  return (
                   <div key={item.id} className="flex items-center justify-between gap-6 p-3 rounded-xl hover:bg-secondary/30 transition-colors">
                     <div className="flex-1">
-                      <p className="font-bold text-foreground">{item.product?.name}</p>
+                      <p className="font-bold text-foreground">{product?.name}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <Package className="w-3 h-3" />
                         Expected: {item.quantity} units
@@ -416,7 +422,7 @@ export default function PurchaseOrders() {
                       />
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           )}

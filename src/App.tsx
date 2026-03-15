@@ -8,10 +8,14 @@ import { LanguageProvider } from "@/contexts/LanguageContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
+import { SettingsProvider } from "@/contexts/SettingsContext";
+import { Toaster as SonnerToaster } from "sonner";
 
 // Lazy load pages
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Products = lazy(() => import("./pages/Products"));
+const Assets = lazy(() => import("./pages/Assets"));
+const Warehouses = lazy(() => import("./pages/Warehouses"));
 const Categories = lazy(() => import("./pages/Categories"));
 const Suppliers = lazy(() => import("./pages/Suppliers"));
 const PurchaseOrders = lazy(() => import("./pages/PurchaseOrders"));
@@ -35,16 +39,20 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <LanguageProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <BrowserRouter>
+        <SettingsProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <SonnerToaster richColors position="top-right" />
+              <BrowserRouter>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+                  <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
+                  <Route path="/warehouses" element={<ProtectedRoute><Warehouses /></ProtectedRoute>} />
                   <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
                   <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
                   <Route path="/orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
@@ -58,7 +66,8 @@ const App = () => (
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
-      </LanguageProvider>
+      </SettingsProvider>
+    </LanguageProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

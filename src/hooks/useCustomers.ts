@@ -1,19 +1,21 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { apiService } from '@/services/apiService';
 import { Customer, CustomerStatus } from '@/types/database';
+import { CustomerDto } from '@/types/api';
+import { mapCustomerDto } from '@/services/apiMappers';
 import { useToast } from '@/hooks/use-toast';
 
 export function useCustomers() {
   return useQuery({
     queryKey: ['customers'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      return data as Customer[];
+      try {
+        const data = await apiService.get<CustomerDto[]>('/customers');
+        return data.map(mapCustomerDto);
+      } catch (error) {
+        console.error('Failed to fetch customers:', error);
+        throw error;
+      }
     },
   });
 }
@@ -22,14 +24,13 @@ export function useCustomer(id: string) {
   return useQuery({
     queryKey: ['customer', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data as Customer;
+      try {
+        const data = await apiService.get<CustomerDto>(`/customers/${id}`);
+        return mapCustomerDto(data);
+      } catch (error) {
+        console.error(`Failed to fetch customer ${id}:`, error);
+        throw error;
+      }
     },
     enabled: !!id,
   });
@@ -41,14 +42,14 @@ export function useCreateCustomer() {
 
   return useMutation({
     mutationFn: async (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at' | 'total_orders' | 'total_spent'>) => {
-      const { data, error } = await supabase
-        .from('customers')
-        .insert(customer)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const data = await apiService.post<CustomerDto>('/customers', {
+        name: customer.name,
+        email: customer.email ?? '',
+        phone: customer.phone ?? '',
+        address: customer.address ?? '',
+        status: customer.status ?? 'active',
+      });
+      return mapCustomerDto(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -66,15 +67,14 @@ export function useUpdateCustomer() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Customer> }) => {
-      const { data, error } = await supabase
-        .from('customers')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const data = await apiService.put<CustomerDto>(`/customers/${id}`, {
+        name: updates.name ?? '',
+        email: updates.email ?? '',
+        phone: updates.phone ?? '',
+        address: updates.address ?? '',
+        status: (updates.status ?? 'active') as CustomerStatus,
+      });
+      return mapCustomerDto(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -91,18 +91,16 @@ export function useToggleCustomerStatus() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, currentStatus }: { id: string; currentStatus: CustomerStatus }) => {
-      const newStatus: CustomerStatus = currentStatus === 'active' ? 'inactive' : 'active';
-      
-      const { data, error } = await supabase
-        .from('customers')
-        .update({ status: newStatus })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+    mutationFn: async (customer: Customer) => {
+      const newStatus: CustomerStatus = customer.status === 'active' ? 'inactive' : 'active';
+      const data = await apiService.put<CustomerDto>(`/customers/${customer.id}`, {
+        name: customer.name,
+        email: customer.email ?? '',
+        phone: customer.phone ?? '',
+        address: customer.address ?? '',
+        status: newStatus,
+      });
+      return mapCustomerDto(data);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });

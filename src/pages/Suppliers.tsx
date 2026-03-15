@@ -24,7 +24,8 @@ import {
 
 export default function Suppliers() {
   const navigate = useNavigate();
-  const { isAdmin, isAdminOrManager } = useAuth();
+  const { role, isAdminOrManager } = useAuth();
+  const isAdmin = role === 'Owner' || role === 'Admin';
   const { data: suppliers, isLoading } = useSuppliers();
   const deleteSupplier = useDeleteSupplier();
 

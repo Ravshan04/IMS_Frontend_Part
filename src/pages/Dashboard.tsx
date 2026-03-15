@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { isAdminOrManager } = useAuth();
+  const { isAdminOrManager, canManageCatalog } = useAuth();
   const { t } = useLanguage();
   const { data: stats } = useDashboardStats();
   const { data: unreadCount } = useUnreadNotificationsCount();
@@ -60,8 +60,8 @@ export default function Dashboard() {
               </span>
             )}
           </Button>
-          {isAdminOrManager && (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {isAdminOrManager && (
               <Button
                 className="bg-primary hover:bg-primary/90 shadow-sm"
                 onClick={() => setCreateOrderOpen(true)}
@@ -69,6 +69,8 @@ export default function Dashboard() {
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 {t('new_order')}
               </Button>
+            )}
+            {canManageCatalog && (
               <Button
                 size="icon"
                 className="bg-success hover:bg-success/90 rounded-full h-10 w-10 shadow-sm"
@@ -77,8 +79,8 @@ export default function Dashboard() {
               >
                 <Plus className="w-5 h-5" />
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </PageHeader>
 
         {/* Stats Grid */}

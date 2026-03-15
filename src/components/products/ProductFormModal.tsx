@@ -7,10 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
-import { useSuppliers } from '@/hooks/useSuppliers';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/useProducts';
 import { Product } from '@/types/database';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface ProductFormModalProps {
   open: boolean;
@@ -20,24 +18,18 @@ interface ProductFormModalProps {
 }
 
 export default function ProductFormModal({ open, onOpenChange, product, mode }: ProductFormModalProps) {
-  const { role } = useAuth();
-  const isStaff = role === 'staff';
-  
   const [formData, setFormData] = useState({
     sku: product?.sku || '',
     name: product?.name || '',
     description: product?.description || '',
     category_id: product?.category_id || '',
-    supplier_id: product?.supplier_id || '',
-    quantity: product?.quantity || 0,
-    reorder_level: product?.reorder_level || 10,
-    price: product?.price || 0,
     cost: product?.cost || 0,
-    location: product?.location || '',
+    price: product?.price || 0,
+    barcode: product?.barcode || '',
+    unit: product?.unit || 'Piece',
   });
 
   const { data: categories } = useCategories();
-  const { data: suppliers } = useSuppliers();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
@@ -50,37 +42,31 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const payload = {
+      sku: formData.sku || generateSku(),
+      name: formData.name,
+      description: formData.description || null,
+      category_id: formData.category_id || null,
+      barcode: formData.barcode || '',
+      unit: formData.unit || 'Piece',
+      price: formData.price,
+      cost: formData.cost,
+    };
+
     if (mode === 'create') {
-      await createProduct.mutateAsync({
-        sku: formData.sku || generateSku(),
-        name: formData.name,
-        description: formData.description || null,
-        category_id: formData.category_id || null,
-        supplier_id: formData.supplier_id || null,
-        quantity: formData.quantity,
-        reorder_level: formData.reorder_level,
-        price: formData.price,
-        cost: formData.cost,
-        location: formData.location || null,
-      });
+      await createProduct.mutateAsync(payload);
     } else if (product) {
-      const updates = isStaff 
-        ? { quantity: formData.quantity, location: formData.location }
-        : {
-            name: formData.name,
-            description: formData.description || null,
-            category_id: formData.category_id || null,
-            supplier_id: formData.supplier_id || null,
-            quantity: formData.quantity,
-            reorder_level: formData.reorder_level,
-            price: formData.price,
-            cost: formData.cost,
-            location: formData.location || null,
-          };
-      
       await updateProduct.mutateAsync({
         id: product.id,
-        updates,
+        updates: {
+          name: payload.name,
+          description: payload.description,
+          category_id: payload.category_id,
+          barcode: payload.barcode,
+          unit: payload.unit,
+          price: payload.price,
+          cost: payload.cost,
+        },
         oldProduct: product,
       });
     }
@@ -119,7 +105,6 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
-              disabled={isStaff}
               className="bg-secondary border-border"
             />
           </div>
@@ -129,16 +114,14 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
               placeholder="Product description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              disabled={isStaff}
               className="bg-secondary border-border"
             />
           </div>
-          <div className="space-y-2">
+          <div className="col-span-2 space-y-2">
             <Label>Category</Label>
             <Select
               value={formData.category_id}
               onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-              disabled={isStaff}
             >
               <SelectTrigger className="bg-secondary border-border">
                 <SelectValue placeholder="Select category" />
@@ -153,54 +136,20 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Supplier</Label>
-            <Select
-              value={formData.supplier_id}
-              onValueChange={(value) => setFormData({ ...formData, supplier_id: value })}
-              disabled={isStaff}
-            >
-              <SelectTrigger className="bg-secondary border-border">
-                <SelectValue placeholder="Select supplier" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border">
-                {suppliers?.map((sup) => (
-                  <SelectItem key={sup.id} value={sup.id}>
-                    {sup.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Quantity</Label>
+            <Label>Unit</Label>
             <Input
-              type="number"
-              min="0"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 0 })}
+              placeholder="Piece"
+              value={formData.unit}
+              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
               className="bg-secondary border-border"
             />
           </div>
           <div className="space-y-2">
-            <Label>Reorder Level</Label>
+            <Label>Barcode</Label>
             <Input
-              type="number"
-              min="0"
-              value={formData.reorder_level}
-              onChange={(e) => setFormData({ ...formData, reorder_level: parseInt(e.target.value) || 10 })}
-              disabled={isStaff}
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Price ($)</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-              disabled={isStaff}
+              placeholder="Optional"
+              value={formData.barcode}
+              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
               className="bg-secondary border-border"
             />
           </div>
@@ -212,16 +161,17 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
               step="0.01"
               value={formData.cost}
               onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
-              disabled={isStaff}
               className="bg-secondary border-border"
             />
           </div>
-          <div className="col-span-2 space-y-2">
-            <Label>Location / Warehouse</Label>
+          <div className="space-y-2">
+            <Label>Selling Price ($)</Label>
             <Input
-              placeholder="Warehouse A"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
               className="bg-secondary border-border"
             />
           </div>

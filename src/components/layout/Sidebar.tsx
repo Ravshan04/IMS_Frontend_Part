@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Box,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,6 +33,8 @@ export default function Sidebar() {
   const navigation = useMemo(() => [
     { name: t('dashboard'), href: '/', icon: LayoutDashboard },
     { name: t('products'), href: '/products', icon: Package },
+    { name: t('assets'), href: '/assets', icon: ShieldCheck },
+    { name: t('warehouses'), href: '/warehouses', icon: Box },
     { name: t('categories'), href: '/categories', icon: FolderTree },
     { name: t('suppliers'), href: '/suppliers', icon: Truck },
     { name: t('purchaseOrders'), href: '/orders', icon: ShoppingCart },
@@ -58,9 +61,10 @@ export default function Sidebar() {
 
   const getRoleBadgeVariant = () => {
     switch (role) {
-      case 'admin':
+      case 'Owner':
+      case 'Admin':
         return 'destructive';
-      case 'manager':
+      case 'Manager':
         return 'default';
       default:
         return 'secondary';

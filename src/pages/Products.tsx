@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Download, Edit, Trash2, History, Loader2 } from 'lucide-react';
+import { Plus, Download, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import DataTable from '@/components/ui/data-table';
@@ -9,74 +9,43 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
-import { useSuppliers } from '@/hooks/useSuppliers';
 import { useAuth } from '@/contexts/AuthContext';
 import ProductFormModal from '@/components/products/ProductFormModal';
-import ProductHistoryModal from '@/components/products/ProductHistoryModal';
-import DeleteProductModal from '@/components/products/DeleteProductModal';
 import { Product } from '@/types/database';
-import { cn } from '@/lib/utils';
 
 export default function Products() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { isAdmin, isAdminOrManager } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { canManageCatalog } = useAuth();
 
   const [filters, setFilters] = useState({
     categoryId: searchParams.get('category') || '',
-    supplierId: searchParams.get('supplier') || '',
-    lowStockOnly: searchParams.get('lowStock') === 'true',
   });
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [historyProduct, setHistoryProduct] = useState<Product | null>(null);
-  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+  
 
-  const { data: products, isLoading } = useProducts(filters.categoryId || filters.supplierId || filters.lowStockOnly ? {
+  const { data: products, isLoading } = useProducts(filters.categoryId ? {
     categoryId: filters.categoryId || undefined,
-    supplierId: filters.supplierId || undefined,
-    lowStockOnly: filters.lowStockOnly,
   } : undefined);
   const { data: categories } = useCategories();
-  const { data: suppliers } = useSuppliers();
 
-  // Handle URL params for edit modal
-  useEffect(() => {
-    const editId = searchParams.get('edit');
-    if (editId && products) {
-      const product = products.find(p => p.id === editId);
-      if (product) {
-        setEditProduct(product);
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('edit');
-        setSearchParams(newParams);
-      }
-    }
-  }, [searchParams, products, setSearchParams]);
-
-  const getStockStatus = useCallback((quantity: number, reorderLevel: number) => {
-    if (quantity <= 0) return { label: 'Out of Stock', variant: 'destructive' as const };
-    if (quantity <= reorderLevel) return { label: 'Low Stock', variant: 'warning' as const };
-    return { label: 'In Stock', variant: 'success' as const };
-  }, []);
+  const getCategoryName = useCallback((categoryId: string | null) => {
+    if (!categoryId) return 'Uncategorized';
+    return categories?.find(c => c.id === categoryId)?.name || 'Uncategorized';
+  }, [categories]);
 
   const handleExport = useCallback(() => {
     if (!products) return;
 
-    const headers = ['SKU', 'Name', 'Description', 'Category', 'Supplier', 'Quantity', 'Reorder Level', 'Price', 'Cost', 'Location', 'Created At', 'Updated At'];
+    const headers = ['SKU', 'Name', 'Description', 'Category', 'Unit', 'Price', 'Cost'];
     const rows = products.map(p => [
       p.sku,
       p.name,
       p.description || '',
-      p.category?.name || '',
-      p.supplier?.name || '',
-      p.quantity.toString(),
-      p.reorder_level.toString(),
+      getCategoryName(p.category_id),
+      p.unit || 'Piece',
       p.price.toString(),
       p.cost.toString(),
-      p.location || '',
-      new Date(p.created_at).toLocaleDateString(),
-      new Date(p.updated_at).toLocaleDateString(),
     ]);
 
     const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -87,7 +56,7 @@ export default function Products() {
     a.download = `products-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [products]);
+  }, [products, getCategoryName]);
 
   const columns = useMemo(() => [
     {
@@ -116,28 +85,16 @@ export default function Products() {
       header: 'Category',
       render: (item: Product) => (
         <Badge variant="outline" className="bg-secondary/30 border-border/50 font-normal">
-          {item.category?.name || 'Uncategorized'}
+          {getCategoryName(item.category_id)}
         </Badge>
       ),
     },
     {
-      key: 'supplier',
-      header: 'Supplier',
-      render: (item: Product) => (
-        <span className="text-muted-foreground text-sm">{item.supplier?.name || 'No supplier'}</span>
-      ),
-    },
-    {
-      key: 'quantity',
-      header: 'Qty',
+      key: 'unit',
+      header: 'Unit',
       sortable: true,
       render: (item: Product) => (
-        <span className={cn(
-          'font-semibold',
-          item.quantity <= item.reorder_level ? 'text-warning' : 'text-foreground'
-        )}>
-          {item.quantity}
-        </span>
+        <span className="text-muted-foreground text-sm">{item.unit || 'Piece'}</span>
       ),
     },
     {
@@ -149,54 +106,16 @@ export default function Products() {
       ),
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (item: Product) => {
-        const status = getStockStatus(item.quantity, item.reorder_level);
-        return <Badge variant={status.variant} className="capitalize">{status.label}</Badge>;
-      },
-    },
-    {
       key: 'actions',
       header: 'Actions',
       render: (item: Product) => (
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:text-primary h-8 w-8"
-            onClick={() => setHistoryProduct(item)}
-            title="History"
-          >
-            <History className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hover:text-primary h-8 w-8"
-            onClick={() => setEditProduct(item)}
-            title="Edit"
-          >
-            <Edit className="w-4 h-4" />
-          </Button>
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hover:text-destructive h-8 w-8"
-              onClick={() => setDeleteProduct(item)}
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
+        <div className="text-xs text-muted-foreground">-</div>
       ),
     },
-  ], [isAdmin, getStockStatus]);
+  ], [getCategoryName]);
 
   const clearFilters = useCallback(() => {
-    setFilters({ categoryId: '', supplierId: '', lowStockOnly: false });
+    setFilters({ categoryId: '' });
   }, []);
 
   return (
@@ -204,13 +123,13 @@ export default function Products() {
       <div className="p-4 sm:p-8 max-w-7xl mx-auto">
         <PageHeader
           title="Products"
-          description="Manage your product inventory and stock levels."
+          description="Manage your product catalog and pricing."
         >
           <Button variant="outline" className="border-border hidden sm:flex" onClick={handleExport} disabled={!products?.length}>
             <Download className="w-4 h-4 mr-2" />
             Export
           </Button>
-          {isAdminOrManager && (
+          {canManageCatalog && (
             <Button className="bg-primary hover:bg-primary/90 shadow-sm" onClick={() => setCreateModalOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Add Product
@@ -235,34 +154,7 @@ export default function Products() {
             </SelectContent>
           </Select>
 
-          <Select
-            value={filters.supplierId}
-            onValueChange={(value) => setFilters(f => ({ ...f, supplierId: value === 'all' ? '' : value }))}
-          >
-            <SelectTrigger className="w-[160px] bg-secondary/50 border-border">
-              <SelectValue placeholder="All Suppliers" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Suppliers</SelectItem>
-              {suppliers?.map((sup) => (
-                <SelectItem key={sup.id} value={sup.id}>{sup.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button
-            variant={filters.lowStockOnly ? 'default' : 'outline'}
-            size="sm"
-            className={cn(
-              'border-border h-9',
-              filters.lowStockOnly && 'bg-warning text-warning-foreground hover:bg-warning/90 border-warning'
-            )}
-            onClick={() => setFilters(f => ({ ...f, lowStockOnly: !f.lowStockOnly }))}
-          >
-            Low Stock
-          </Button>
-
-          {(filters.categoryId || filters.supplierId || filters.lowStockOnly) && (
+          {(filters.categoryId) && (
             <Button
               variant="ghost"
               size="sm"
@@ -298,28 +190,6 @@ export default function Products() {
         onOpenChange={setCreateModalOpen}
         mode="create"
       />
-      {editProduct && (
-        <ProductFormModal
-          open={!!editProduct}
-          onOpenChange={(open) => !open && setEditProduct(null)}
-          product={editProduct}
-          mode="edit"
-        />
-      )}
-      {historyProduct && (
-        <ProductHistoryModal
-          open={!!historyProduct}
-          onOpenChange={(open) => !open && setHistoryProduct(null)}
-          product={historyProduct}
-        />
-      )}
-      {deleteProduct && (
-        <DeleteProductModal
-          open={!!deleteProduct}
-          onOpenChange={(open) => !open && setDeleteProduct(null)}
-          product={deleteProduct}
-        />
-      )}
     </MainLayout>
   );
 }

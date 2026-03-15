@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useProductHistory } from '@/hooks/useProducts';
-import { Product } from '@/types/database';
+import { Product, ProductHistory } from '@/types/database';
 import { formatDistanceToNow } from 'date-fns';
 import { History, User } from 'lucide-react';
 
@@ -32,7 +32,7 @@ export default function ProductHistoryModal({ open, onOpenChange, product }: Pro
             <div className="text-center text-muted-foreground py-8">Loading history...</div>
           ) : history && history.length > 0 ? (
             <div className="space-y-4">
-              {history.map((entry: any) => (
+              {history.map((entry: ProductHistory) => (
                 <div key={entry.id} className="glass rounded-lg p-4">
                   <div className="flex items-start justify-between">
                     <div>
@@ -41,7 +41,7 @@ export default function ProductHistoryModal({ open, onOpenChange, product }: Pro
                       </p>
                       <div className="flex items-center gap-2 mt-1 text-sm">
                         <span className="text-destructive line-through">{entry.old_value || 'null'}</span>
-                        <span className="text-muted-foreground">→</span>
+                        <span className="text-muted-foreground">-&gt;</span>
                         <span className="text-success">{entry.new_value || 'null'}</span>
                       </div>
                     </div>

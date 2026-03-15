@@ -1,4 +1,4 @@
-import { FileText, Download, Filter, Calendar, TrendingUp, Package, Truck, LayoutGrid } from 'lucide-react';
+import { FileText, Download, Filter, Calendar, TrendingUp, Package, Truck, LayoutGrid, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { supplierPerformance, categoryDistribution } from '@/data/mockData';
+import { useCategoryDistribution } from '@/hooks/useReporting';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { cn } from '@/lib/utils';
 
@@ -21,7 +21,28 @@ const reportTypes = [
   { id: 'category', name: 'Product Hierarchy', description: 'Distribution across categories', icon: LayoutGrid, color: 'text-primary' },
 ];
 
+// Placeholder for supplier performance as it might not be in the reporting controller yet
+const supplierPerformancePlaceholder = [
+  { name: 'Supplier A', deliveries: 45, onTime: 42 },
+  { name: 'Supplier B', deliveries: 32, onTime: 28 },
+  { name: 'Supplier C', deliveries: 56, onTime: 54 },
+  { name: 'Supplier D', deliveries: 20, onTime: 15 },
+];
+
 export default function Reports() {
+  const { data: categoryData, isLoading: catLoading } = useCategoryDistribution();
+
+  if (catLoading) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />
+          <p className="text-muted-foreground animate-pulse">Analyzing Data...</p>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="p-4 sm:p-8 max-w-7xl mx-auto">
@@ -124,7 +145,7 @@ export default function Reports() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height="80%">
-              <BarChart data={supplierPerformance} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <BarChart data={supplierPerformancePlaceholder} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
                 <XAxis
                   dataKey="name"
@@ -174,7 +195,7 @@ export default function Reports() {
               Stock Composition
             </h3>
             <div className="space-y-8">
-              {categoryDistribution.map((item, index) => (
+              {(categoryData || []).map((item, index) => (
                 <div key={item.name} className="group cursor-default">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.name}</span>
@@ -195,7 +216,7 @@ export default function Reports() {
 
             <div className="mt-12 p-5 rounded-2xl bg-secondary/30 border border-border/50">
               <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground mb-2">Pro Indicator</p>
-              <p className="text-xs text-foreground leading-relaxed">Your most stocked category is <span className="text-primary font-bold">Electronics</span>. Consider re-evaluating storage allocation for better efficiency.</p>
+              <p className="text-xs text-foreground leading-relaxed">Your inventory distribution is based on category data. High concentrations might indicate a need for storage optimization.</p>
             </div>
           </div>
         </div>
