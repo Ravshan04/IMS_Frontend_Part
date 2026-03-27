@@ -1,79 +1,48 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, AlertTriangle, FolderTree, Truck, DollarSign, ShoppingCart, Bell, Plus } from 'lucide-react';
+import { Package, AlertTriangle, FolderTree, Bell, Plus, History, MapPin, ShieldCheck, DollarSign, UserCheck, Wrench } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import StatCard from '@/components/dashboard/StatCard';
-import StockChart from '@/components/dashboard/StockChart';
-import SalesChart from '@/components/dashboard/SalesChart';
-import CategoryPieChart from '@/components/dashboard/CategoryPieChart';
-import RecentProducts from '@/components/dashboard/RecentProducts';
-import LowStockModal from '@/components/dashboard/LowStockModal';
 import NotificationsPanel from '@/components/notifications/NotificationsPanel';
-import CreateOrderModal from '@/components/orders/CreateOrderModal';
-import QuickAddProductModal from '@/components/dashboard/QuickAddProductModal';
+import QuickAddProductModal from '../components/products/QuickAddProductModal';
 import { Button } from '@/components/ui/button';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { isAdminOrManager, canManageCatalog } = useAuth();
   const { t } = useLanguage();
-  const { data: stats } = useDashboardStats();
-  const { data: unreadCount } = useUnreadNotificationsCount();
-
-  const [lowStockOpen, setLowStockOpen] = useState(false);
+  const { user, session, isAdminOrManager, canManageCatalog } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [createOrderOpen, setCreateOrderOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
 
-  const dashboardStats = stats || {
-    totalProducts: 0,
-    lowStockItems: 0,
-    totalCategories: 0,
-    totalSuppliers: 0,
-    totalValue: 0,
-    pendingOrders: 0,
-  };
+  const { data: dashboardStats, isLoading } = useDashboardStats();
+
+  if (isLoading || !dashboardStats) {
+    return (
+      <MainLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground font-black uppercase tracking-widest animate-pulse">Syncing Inventory Records...</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
-      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
         <PageHeader
           title={t('dashboard')}
-          description={t('overview_desc')}
+          description={`${t('welcome_back')}, ${session?.firstName || 'Manager'}. Here is your organizational asset overview.`}
         >
-          <Button
-            variant="outline"
-            className="border-border relative"
-            onClick={() => setNotificationsOpen(true)}
-          >
-            <Bell className="w-4 h-4 mr-2" />
-            {t('notifications')}
-            {unreadCount !== undefined && unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
-                {unreadCount}
-              </span>
-            )}
-          </Button>
           <div className="flex items-center gap-2">
-            {isAdminOrManager && (
-              <Button
-                className="bg-primary hover:bg-primary/90 shadow-sm"
-                onClick={() => setCreateOrderOpen(true)}
-              >
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                {t('new_order')}
-              </Button>
-            )}
             {canManageCatalog && (
               <Button
                 size="icon"
-                className="bg-success hover:bg-success/90 rounded-full h-10 w-10 shadow-sm"
+                className="bg-success hover:bg-success/90 rounded-full h-10 w-10 shadow-xl shadow-success/20"
                 onClick={() => setQuickAddOpen(true)}
                 title={t('quick_add_product')}
               >
@@ -83,165 +52,108 @@ export default function Dashboard() {
           </div>
         </PageHeader>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-10 overflow-hidden">
-          <div
-            className="cursor-pointer group"
-            onClick={() => navigate('/products')}
-          >
-            <StatCard
-              title={t('totalProducts')}
-              value={dashboardStats.totalProducts}
-              icon={<Package className="w-5 h-5" />}
-              trend={8.2}
-              trendLabel={t('vs_last_month')}
-              className="animate-slide-up hover:border-primary/50 transition-all hover:shadow-md"
-            />
-          </div>
-          <div
-            className="cursor-pointer group"
-            onClick={() => setLowStockOpen(true)}
-          >
-            <StatCard
-              title={t('lowStock')}
-              value={dashboardStats.lowStockItems}
-              icon={<AlertTriangle className="w-5 h-5" />}
-              trend={dashboardStats.lowStockItems > 0 ? -dashboardStats.lowStockItems : 0}
-              trendLabel={t('needs_attention')}
-              className="animate-slide-up [animation-delay:50ms] hover:border-warning/50 transition-all hover:shadow-md"
-            />
-          </div>
-          <div
-            className="cursor-pointer group"
-            onClick={() => navigate('/categories')}
-          >
-            <StatCard
-              title={t('categories')}
-              value={dashboardStats.totalCategories}
-              icon={<FolderTree className="w-5 h-5" />}
-              className="animate-slide-up [animation-delay:100ms] hover:border-primary/50 transition-all hover:shadow-md"
-            />
-          </div>
-          <div
-            className="cursor-pointer group"
-            onClick={() => navigate('/suppliers')}
-          >
-            <StatCard
-              title={t('suppliers')}
-              value={dashboardStats.totalSuppliers}
-              icon={<Truck className="w-5 h-5" />}
-              trend={2}
-              trendLabel={t('new_this_month')}
-              className="animate-slide-up [animation-delay:150ms] hover:border-primary/50 transition-all hover:shadow-md"
-            />
-          </div>
+        {/* Major Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title={t('totalValue')}
-            value={`$${(dashboardStats.totalValue / 1000).toFixed(0)}k`}
-            icon={<DollarSign className="w-5 h-5" />}
-            trend={12.5}
-            trendLabel={t('vs_last_month')}
-            className="animate-slide-up [animation-delay:200ms]"
+            title="Total Asset Units"
+            value={dashboardStats.totalAssetUnits}
+            icon={<ShieldCheck className="w-5 h-5" />}
+            className="animate-slide-up hover:border-primary/50 transition-all hover:shadow-xl hover:shadow-primary/5"
           />
-          <div
-            className="cursor-pointer group"
-            onClick={() => navigate('/orders')}
-          >
-            <StatCard
-              title={t('purchaseOrders')}
-              value={dashboardStats.pendingOrders}
-              icon={<ShoppingCart className="w-5 h-5" />}
-              className="animate-slide-up [animation-delay:250ms] hover:border-primary/50 transition-all hover:shadow-md"
-            />
-          </div>
+          <StatCard
+            title="Assigned To Staff"
+            value={dashboardStats.assignedAssets}
+            icon={<UserCheck className="w-5 h-5" />}
+            className="animate-slide-up [animation-delay:100ms] hover:border-primary/50 transition-all hover:shadow-xl hover:shadow-primary/5"
+          />
+          <StatCard
+            title="Asset Portfolio Value"
+            value={`$${dashboardStats.totalAssetValue.toLocaleString()}`}
+            icon={<DollarSign className="w-5 h-5" />}
+            className="animate-slide-up [animation-delay:200ms] hover:border-primary/50 transition-all hover:shadow-xl hover:shadow-primary/5"
+          />
+          <StatCard
+             title="Req. Maintenance"
+             value={dashboardStats.maintenanceRequiredCount}
+             icon={<Wrench className="w-5 h-5" />}
+             className={`animate-slide-up [animation-delay:300ms] hover:border-destructive/50 transition-all hover:shadow-xl hover:shadow-destructive/5 ${dashboardStats.maintenanceRequiredCount > 0 ? "border-destructive/30 bg-destructive/5" : ""}`}
+          />
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 overflow-hidden">
-          <Button
-            variant="outline"
-            className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-primary/50 hover:bg-primary/5 transition-all animate-fade-in [animation-delay:300ms]"
-            onClick={() => navigate('/products')}
-          >
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Package className="w-5 h-5 text-primary" />
+        {/* Secondary Info & Actions */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12">
+            <div className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="bg-card border-2 border-border/50 rounded-3xl p-6 hover:border-primary/30 transition-all group">
+                         <div className="flex items-center gap-3 mb-2">
+                            <MapPin className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                            <h3 className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Managed Facilities</h3>
+                         </div>
+                         <p className="text-3xl font-black">{dashboardStats.totalFacilities}</p>
+                    </div>
+                    <div className="bg-card border-2 border-border/50 rounded-3xl p-6 hover:border-primary/30 transition-all group">
+                         <div className="flex items-center gap-3 mb-2">
+                            <Package className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                            <h3 className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Equipment Types</h3>
+                         </div>
+                         <p className="text-3xl font-black">{dashboardStats.totalEquipmentTypes}</p>
+                    </div>
+                </div>
+
+                <div className="bg-card border-2 border-border/50 rounded-3xl p-10 flex flex-col items-center justify-center text-center gap-2 relative overflow-hidden group">
+                     <div className="absolute top-0 left-0 w-full h-1 bg-primary/20" />
+                     <History className="w-12 h-12 text-primary/20 mb-2 group-hover:text-primary transition-colors" />
+                     <h2 className="text-xl font-black tracking-tight uppercase">Recent Inventory Changes</h2>
+                     <p className="text-sm text-muted-foreground font-medium">View the full transaction history of asset movements and assignments.</p>
+                     <Button 
+                        variant="link" 
+                        onClick={() => navigate('/movements')}
+                        className="text-primary font-black uppercase tracking-widest text-[10px]"
+                     >
+                        Enter Audit Log
+                     </Button>
+                </div>
             </div>
-            <span className="font-medium">{t('all_products')}</span>
-          </Button>
-          <Button
-            variant="outline"
-            className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-warning/50 hover:bg-warning/5 transition-all animate-fade-in [animation-delay:350ms]"
-            onClick={() => setLowStockOpen(true)}
-          >
-            <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-warning" />
+
+            <div className="space-y-6">
+                <div className="bg-card border-2 border-border/50 rounded-3xl p-6 space-y-6 shadow-sm">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Quick Access</h3>
+                    <div className="flex flex-col gap-3">
+                        <Button 
+                            className="bg-primary hover:bg-primary/90 rounded-2xl h-14 font-black shadow-xl shadow-primary/20 uppercase tracking-widest text-[10px]"
+                            onClick={() => navigate('/assets')}
+                        >
+                            <ShieldCheck className="w-4 h-4 mr-2" />
+                            Inventory Search
+                        </Button>
+                        <Button 
+                            variant="outline"
+                            className="rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] border-2"
+                            onClick={() => navigate('/warehouses')}
+                        >
+                            <MapPin className="w-4 h-4 mr-2" />
+                            Room Mapping
+                        </Button>
+                        <Button 
+                            variant="outline"
+                            className="rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] border-2"
+                            onClick={() => setNotificationsOpen(true)}
+                        >
+                            <Bell className="w-4 h-4 mr-2" />
+                            Security Logs
+                        </Button>
+                    </div>
+                </div>
             </div>
-            <span className="font-medium">{t('low_stock_alerts')}</span>
-          </Button>
-          {isAdminOrManager && (
-            <Button
-              variant="outline"
-              className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-primary/50 hover:bg-primary/5 transition-all animate-fade-in [animation-delay:400ms]"
-              onClick={() => setCreateOrderOpen(true)}
-            >
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <ShoppingCart className="w-5 h-5 text-primary" />
-              </div>
-              <span className="font-medium">{t('new_order')}</span>
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            className="h-auto py-6 flex flex-col gap-3 border-border bg-card/50 hover:border-primary/50 hover:bg-primary/5 transition-all relative animate-fade-in [animation-delay:450ms]"
-            onClick={() => setNotificationsOpen(true)}
-          >
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bell className="w-5 h-5 text-primary" />
-            </div>
-            <span className="font-medium">{t('notifications')}</span>
-            {unreadCount !== undefined && unreadCount > 0 && (
-              <span className="absolute top-4 right-6 w-5 h-5 bg-destructive text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {unreadCount}
-              </span>
-            )}
-          </Button>
         </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10 overflow-hidden">
-          <div className="animate-slide-up [animation-delay:500ms]">
-            <SalesChart />
-          </div>
-          <div className="animate-slide-up [animation-delay:550ms]">
-            <StockChart />
-          </div>
-        </div>
-
-        {/* Second Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 overflow-hidden">
-          <div className="lg:col-span-2 animate-slide-up [animation-delay:600ms]">
-            <RecentProducts />
-          </div>
-          <div className="animate-slide-up [animation-delay:650ms]">
-            <CategoryPieChart />
-          </div>
-        </div>
       </div>
 
-      {/* Modals */}
-      <LowStockModal
-        open={lowStockOpen}
-        onOpenChange={setLowStockOpen}
-        onCreateOrder={() => setCreateOrderOpen(true)}
-      />
       <NotificationsPanel
         open={notificationsOpen}
         onOpenChange={setNotificationsOpen}
       />
-      <CreateOrderModal
-        open={createOrderOpen}
-        onOpenChange={setCreateOrderOpen}
-      />
+      
       <QuickAddProductModal
         open={quickAddOpen}
         onOpenChange={setQuickAddOpen}

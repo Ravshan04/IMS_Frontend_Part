@@ -26,6 +26,7 @@ interface DataTableProps<T> {
   searchKeys?: string[];
   pageSize?: number;
   emptyMessage?: string;
+  onRowClick?: (item: T) => void;
 }
 
 export default function DataTable<T extends object>({
@@ -35,6 +36,7 @@ export default function DataTable<T extends object>({
   searchKeys = [],
   pageSize = 10,
   emptyMessage = 'No data found',
+  onRowClick,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -140,7 +142,14 @@ export default function DataTable<T extends object>({
           <TableBody>
             {paginatedData.length > 0 ? (
               paginatedData.map((item, index) => (
-                <TableRow key={index} className="border-border/50 table-row-hover group">
+                <TableRow 
+                  key={index} 
+                  className={cn(
+                    "border-border/50 transition-colors group",
+                    onRowClick && "cursor-pointer hover:bg-secondary/50 group"
+                  )}
+                  onClick={() => onRowClick?.(item)}
+                >
                   {columns.map((column) => (
                     <TableCell key={column.key} className="py-4">
                       {column.render

@@ -1,26 +1,84 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiService } from '@/services/apiService';
-import { CategoryDistributionDto, SalesTrendDto } from '@/types/api';
 
-export interface SalesTrendItem {
-  name: string;
-  sales: number;
+// ---------------------------------------------------------------------------
+// Backend DTO shapes (matching OmborPro.Application.DTOs.Reporting)
+// ---------------------------------------------------------------------------
+interface AssetConditionDto {
+  condition: string;
+  count: number;
+  hexColor: string;
+}
+
+interface FacilityDistributionDto {
+  facilityName: string;
+  assetCount: number;
+  totalValue: number;
+}
+
+interface CategoryDistributionDto {
+  categoryName: string;
+  itemCount: number;
+  totalValue: number;
+}
+
+// ---------------------------------------------------------------------------
+// Public hook return types (used by Reports.tsx)
+// ---------------------------------------------------------------------------
+export interface ConditionDistributionItem {
+  condition: string;
+  count: number;
+  color: string;
+}
+
+export interface FacilityDistributionItem {
+  facilityName: string;
+  assetCount: number;
+  totalValue: number;
 }
 
 export interface CategoryDistributionItem {
   name: string;
-  value: number;
+  assetCount: number;
+  totalValue: number;
 }
 
-export function useSalesTrend(days: number = 30) {
-  return useQuery({
-    queryKey: ['reporting', 'sales-trend', days],
+// ---------------------------------------------------------------------------
+// Hooks
+// ---------------------------------------------------------------------------
+
+export function useConditionDistribution() {
+  return useQuery<ConditionDistributionItem[]>({
+    queryKey: ['reporting', 'condition-distribution'],
     queryFn: async () => {
       try {
-        const data = await apiService.get<SalesTrendDto[]>(`/reporting/sales-trend?days=${days}`);
-        return data.map((d) => ({ name: d.date, sales: d.totalSales ?? 0 }));
+        const data = await apiService.get<AssetConditionDto[]>('/reporting/condition-distribution');
+        return data.map((d) => ({
+          condition: d.condition,
+          count: d.count,
+          color: d.hexColor,
+        }));
       } catch (error) {
-        console.error('Failed to fetch sales trend:', error);
+        console.error('Failed to fetch condition distribution:', error);
+        return [];
+      }
+    },
+  });
+}
+
+export function useFacilityDistribution() {
+  return useQuery<FacilityDistributionItem[]>({
+    queryKey: ['reporting', 'facility-distribution'],
+    queryFn: async () => {
+      try {
+        const data = await apiService.get<FacilityDistributionDto[]>('/reporting/facility-distribution');
+        return data.map((d) => ({
+          facilityName: d.facilityName,
+          assetCount: d.assetCount,
+          totalValue: d.totalValue,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch facility distribution:', error);
         return [];
       }
     },
@@ -28,42 +86,18 @@ export function useSalesTrend(days: number = 30) {
 }
 
 export function useCategoryDistribution() {
-  return useQuery({
+  return useQuery<CategoryDistributionItem[]>({
     queryKey: ['reporting', 'category-distribution'],
     queryFn: async () => {
       try {
         const data = await apiService.get<CategoryDistributionDto[]>('/reporting/category-distribution');
-        const totalValue = data.reduce((sum, d) => sum + (d.totalValue ?? 0), 0);
         return data.map((d) => ({
           name: d.categoryName,
-          value: totalValue > 0 ? Math.round((d.totalValue ?? 0) * 100 / totalValue) : (d.productCount ?? 0),
+          assetCount: d.itemCount,
+          totalValue: d.totalValue,
         }));
       } catch (error) {
         console.error('Failed to fetch category distribution:', error);
-        return [];
-      }
-    },
-  });
-}
-
-export interface StockLevelItem {
-  name: string;
-  inStock: number;
-  lowStock: number;
-}
-
-export function useStockLevels() {
-  return useQuery({
-    queryKey: ['reporting', 'stock-levels'],
-    queryFn: async () => {
-      try {
-        const data = await apiService.get<CategoryDistributionDto[]>('/reporting/category-distribution').catch(() => []);
-        return data.map((d) => ({
-          name: d.categoryName,
-          inStock: d.productCount ?? 0,
-          lowStock: 0,
-        }));
-      } catch (error) {
         return [];
       }
     },

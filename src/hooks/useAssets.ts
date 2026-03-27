@@ -53,3 +53,39 @@ export function useCreateAsset() {
     },
   });
 }
+
+export function useUpdateAssetStatus() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ 
+      assetCode, 
+      status, 
+      condition, 
+      assignedUserId, 
+      notes 
+    }: { 
+      assetCode: string; 
+      status: string; 
+      condition?: string; 
+      assignedUserId?: string; 
+      notes?: string; 
+    }) => {
+      const data = await apiService.patch<AssetDto>(`/assets/${assetCode}/status`, {
+        status,
+        condition,
+        assignedUserId,
+        notes
+      });
+      return mapAssetDto(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      toast({ title: 'Asset status updated' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error updating asset', description: error.message, variant: 'destructive' });
+    },
+  });
+}

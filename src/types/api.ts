@@ -7,30 +7,6 @@ export interface CategoryDto {
   updatedAt?: string;
 }
 
-export interface SupplierDto {
-  id: string;
-  name: string;
-  contactPerson?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  rating?: number;
-  leadTime?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface CustomerDto {
-  id: string;
-  name: string;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface ProductDto {
   id: string;
   sku: string;
@@ -38,32 +14,17 @@ export interface ProductDto {
   name: string;
   description?: string | null;
   categoryId?: string | null;
-  unit?: string | null;
+  unit: string;
   cost?: number;
-  sellingPrice?: number;
+  sellingPrice: number;
+  reorderPoint: number;
+  reorderQuantity?: number;
   weight?: number;
   length?: number;
   width?: number;
   height?: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface PurchaseOrderItemDto {
-  productId?: string | null;
-  quantity?: number;
-  unitPrice?: number;
-  totalPrice?: number;
-}
-
-export interface PurchaseOrderDto {
-  id: string;
-  poNumber?: string;
-  supplierId?: string | null;
-  warehouseId?: string | null;
-  status?: string;
-  items?: PurchaseOrderItemDto[];
-  totalAmount?: number;
+  tags?: string[];
+  images?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -104,27 +65,47 @@ export interface WarehouseDto {
   state?: string | null;
   country?: string | null;
   zipCode?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  isActive?: boolean;
   organizationId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface DashboardStatsDto {
-  totalProducts: number;
-  lowStockItems: number;
-  totalCategories: number;
-  totalSuppliers: number;
-  totalValue: number;
-  pendingOrders: number;
-}
-
-export interface SalesTrendDto {
-  date?: string;
-  totalSales?: number;
+  totalAssetUnits: number;
+  totalEquipmentTypes: number;
+  totalFacilities: number;
+  totalAssetValue: number;
+  assignedAssets: number;
+  maintenanceRequiredCount: number;
 }
 
 export interface CategoryDistributionDto {
   categoryName?: string;
+  itemCount?: number;
   totalValue?: number;
-  productCount?: number;
+}
+
+export interface InventoryStatusDto {
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  lastStockUpdate: string;
+}
+
+export interface StockMovementDto {
+  id: string;
+  productId: string;
+  warehouseId: string;
+  movementType: string;
+  quantity: number;
+  referenceType: string;
+  referenceId: string;
+  notes: string;
+  performedBy: string;
+  createdAt: string;
 }

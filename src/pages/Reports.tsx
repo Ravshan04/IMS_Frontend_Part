@@ -1,8 +1,7 @@
-import { FileText, Download, Filter, Calendar, TrendingUp, Package, Truck, LayoutGrid, Loader2 } from 'lucide-react';
+import { FileText, Download, Filter, ShieldCheck, Activity, AlignLeft, LayoutGrid, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -10,45 +9,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCategoryDistribution } from '@/hooks/useReporting';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useCategoryDistribution, useConditionDistribution, useFacilityDistribution } from '@/hooks/useReporting';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { cn } from '@/lib/utils';
 
 const reportTypes = [
-  { id: 'inventory', name: 'Inventory Status', description: 'Stock levels & valuation overview', icon: Package, color: 'text-primary' },
-  { id: 'sales', name: 'Revenue Analysis', description: 'Track sales trends & profitability', icon: TrendingUp, color: 'text-success' },
-  { id: 'supplier', name: 'Supply Metrics', description: 'Evaluation of vendor reliability', icon: Truck, color: 'text-warning' },
-  { id: 'category', name: 'Product Hierarchy', description: 'Distribution across categories', icon: LayoutGrid, color: 'text-primary' },
-];
-
-// Placeholder for supplier performance as it might not be in the reporting controller yet
-const supplierPerformancePlaceholder = [
-  { name: 'Supplier A', deliveries: 45, onTime: 42 },
-  { name: 'Supplier B', deliveries: 32, onTime: 28 },
-  { name: 'Supplier C', deliveries: 56, onTime: 54 },
-  { name: 'Supplier D', deliveries: 20, onTime: 15 },
+  { id: 'assets', name: 'Asset Overview', description: 'Total units, status & condition', icon: ShieldCheck, color: 'text-primary' },
+  { id: 'condition', name: 'Condition Analysis', description: 'Physical state distribution', icon: Activity, color: 'text-success' },
+  { id: 'facility', name: 'Facility Distribution', description: 'Assets per location/room', icon: AlignLeft, color: 'text-warning' },
+  { id: 'category', name: 'Equipment Hierarchy', description: 'Distribution across categories', icon: LayoutGrid, color: 'text-primary' },
 ];
 
 export default function Reports() {
   const { data: categoryData, isLoading: catLoading } = useCategoryDistribution();
+  const { data: conditionData, isLoading: condLoading } = useConditionDistribution();
+  const { data: facilityData, isLoading: facLoading } = useFacilityDistribution();
 
-  if (catLoading) {
+  const isLoading = catLoading || condLoading || facLoading;
+
+  if (isLoading) {
     return (
       <MainLayout>
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />
-          <p className="text-muted-foreground animate-pulse">Analyzing Data...</p>
+          <p className="text-muted-foreground animate-pulse">Analyzing Assets...</p>
         </div>
       </MainLayout>
     );
   }
 
+  // Build condition pie chart data
+  const conditionChartData = (conditionData || []).map(c => ({
+    name: c.condition,
+    value: c.count,
+    fill: c.color,
+  }));
+
+  // Build facility bar chart data
+  const facilityChartData = (facilityData || []).map(f => ({
+    name: f.facilityName,
+    assets: f.assetCount,
+    value: f.totalValue,
+  }));
+
+  // Build category progress bars
+  const totalCatAssets = (categoryData || []).reduce((sum, c) => sum + c.assetCount, 0);
+
   return (
     <MainLayout>
       <div className="p-4 sm:p-8 max-w-7xl mx-auto">
         <PageHeader
-          title="Reports"
-          description="In-depth analytics and data exports for your business intelligence."
+          title="Asset Reports"
+          description="In-depth analytics on your organization's equipment and asset portfolio."
         />
 
         {/* Global Controls */}
@@ -62,7 +74,7 @@ export default function Reports() {
             </div>
 
             <div className="flex flex-wrap items-center gap-4 w-full">
-              <Select defaultValue="inventory">
+              <Select defaultValue="assets">
                 <SelectTrigger className="w-full sm:w-[220px] bg-secondary border-border/50 rounded-xl h-11">
                   <SelectValue placeholder="Select report focus" />
                 </SelectTrigger>
@@ -77,12 +89,6 @@ export default function Reports() {
                   ))}
                 </SelectContent>
               </Select>
-
-              <div className="flex items-center gap-2 bg-secondary/50 p-1 rounded-xl border border-border/50">
-                <Input type="date" className="w-[140px] bg-transparent border-none h-9 text-xs focus-visible:ring-0" />
-                <span className="text-[10px] font-bold text-muted-foreground uppercase">to</span>
-                <Input type="date" className="w-[140px] bg-transparent border-none h-9 text-xs focus-visible:ring-0" />
-              </div>
 
               <div className="flex-1" />
 
@@ -127,96 +133,117 @@ export default function Reports() {
 
         {/* Analytics Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Facility Bar Chart */}
           <div className="lg:col-span-2 glass rounded-2xl p-8 h-[450px] animate-slide-up [animation-delay:300ms] border border-border/50">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-xl font-bold text-foreground flex items-center gap-3">
                 <div className="w-2 h-6 bg-primary rounded-full" />
-                Supplier Reliability Analysis
+                Facility Distribution
               </h3>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-primary" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Deliveries</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-success" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">On-Time</span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Asset Count</span>
                 </div>
               </div>
             </div>
-            <ResponsiveContainer width="100%" height="80%">
-              <BarChart data={supplierPerformancePlaceholder} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
-                <XAxis
-                  dataKey="name"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                  fontWeight={600}
-                  tickLine={false}
-                  axisLine={false}
-                  dy={10}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                  fontWeight={600}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  cursor={{ fill: 'hsl(var(--secondary) / 0.4)' }}
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                  }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 600 }}
-                />
-                <Bar
-                  dataKey="deliveries"
-                  fill="hsl(var(--primary))"
-                  radius={[6, 6, 0, 0]}
-                  barSize={32}
-                />
-                <Bar
-                  dataKey="onTime"
-                  fill="hsl(var(--success))"
-                  radius={[6, 6, 0, 0]}
-                  barSize={32}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {facilityChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="80%">
+                <BarChart data={facilityChartData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border) / 0.5)" />
+                  <XAxis
+                    dataKey="name"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    fontWeight={600}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    fontWeight={600}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'hsl(var(--secondary) / 0.4)' }}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                    }}
+                    itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+                  />
+                  <Bar
+                    dataKey="assets"
+                    fill="hsl(var(--primary))"
+                    radius={[6, 6, 0, 0]}
+                    barSize={36}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-[80%] text-muted-foreground text-sm">
+                No facility data available yet. Add assets to see distribution.
+              </div>
+            )}
           </div>
 
-          <div className="glass rounded-2xl p-8 animate-slide-up [animation-delay:400ms] border border-border/50">
-            <h3 className="text-xl font-bold text-foreground mb-8 flex items-center gap-3">
-              <div className="w-2 h-6 bg-success rounded-full" />
-              Stock Composition
-            </h3>
-            <div className="space-y-8">
-              {(categoryData || []).map((item, index) => (
-                <div key={item.name} className="group cursor-default">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">{item.name}</span>
-                    <span className="text-sm font-black text-primary tabular-nums">{item.value}%</span>
-                  </div>
-                  <div className="h-3 bg-secondary/50 rounded-full overflow-hidden border border-border/30">
-                    <div
-                      className="h-full bg-gradient-primary rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(var(--primary),0.3)]"
-                      style={{
-                        width: `${item.value}%`,
-                        animation: `slideLeft 1s ease-out ${index * 150}ms forwards`
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+          {/* Condition Pie + Category Bars */}
+          <div className="flex flex-col gap-8">
+            {/* Condition Pie Chart */}
+            <div className="glass rounded-2xl p-6 animate-slide-up [animation-delay:350ms] border border-border/50">
+              <h3 className="text-base font-bold text-foreground mb-4 flex items-center gap-2">
+                <div className="w-2 h-5 bg-success rounded-full" />
+                Condition Summary
+              </h3>
+              {conditionChartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={conditionChartData} cx="50%" cy="50%" outerRadius={64} dataKey="value" label={({ name, value }) => `${name}: ${value}`} labelLine={false} fontSize={10}>
+                      {conditionChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(val) => [`${val} assets`, 'Count']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-8">No condition data yet.</p>
+              )}
             </div>
 
-            <div className="mt-12 p-5 rounded-2xl bg-secondary/30 border border-border/50">
-              <p className="text-[10px] uppercase tracking-widest font-black text-muted-foreground mb-2">Pro Indicator</p>
-              <p className="text-xs text-foreground leading-relaxed">Your inventory distribution is based on category data. High concentrations might indicate a need for storage optimization.</p>
+            {/* Category progress bars */}
+            <div className="glass rounded-2xl p-6 animate-slide-up [animation-delay:400ms] border border-border/50 flex-1">
+              <h3 className="text-base font-bold text-foreground mb-5 flex items-center gap-2">
+                <div className="w-2 h-5 bg-warning rounded-full" />
+                By Category
+              </h3>
+              <div className="space-y-5">
+                {(categoryData || []).slice(0, 5).map((item, index) => {
+                  const pct = totalCatAssets > 0 ? Math.round((item.assetCount / totalCatAssets) * 100) : 0;
+                  return (
+                    <div key={item.name} className="group cursor-default">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors truncate max-w-[120px]">{item.name}</span>
+                        <span className="text-xs font-black text-primary tabular-nums">{pct}%</span>
+                      </div>
+                      <div className="h-2 bg-secondary/50 rounded-full overflow-hidden border border-border/30">
+                        <div
+                          className="h-full bg-gradient-primary rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${pct}%`, animationDelay: `${index * 150}ms` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+                {(!categoryData || categoryData.length === 0) && (
+                  <p className="text-xs text-muted-foreground text-center py-4">No category data yet.</p>
+                )}
+              </div>
             </div>
           </div>
         </div>

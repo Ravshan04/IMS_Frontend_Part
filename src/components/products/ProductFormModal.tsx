@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
 import { useCreateProduct, useUpdateProduct } from '@/hooks/useProducts';
 import { Product } from '@/types/database';
@@ -19,22 +19,45 @@ interface ProductFormModalProps {
 
 export default function ProductFormModal({ open, onOpenChange, product, mode }: ProductFormModalProps) {
   const [formData, setFormData] = useState({
-    sku: product?.sku || '',
-    name: product?.name || '',
-    description: product?.description || '',
-    category_id: product?.category_id || '',
-    cost: product?.cost || 0,
-    price: product?.price || 0,
-    barcode: product?.barcode || '',
-    unit: product?.unit || 'Piece',
+    sku: '',
+    name: '',
+    description: '',
+    category_id: '',
+    price: 0,
+    barcode: '',
+    unit: 'Piece',
   });
+
+  useEffect(() => {
+    if (product && mode === 'edit') {
+      setFormData({
+        sku: product.sku || '',
+        name: product.name || '',
+        description: product.description || '',
+        category_id: product.category_id || '',
+        price: product.price || 0,
+        barcode: product.barcode || '',
+        unit: product.unit || 'Piece',
+      });
+    } else {
+      setFormData({
+        sku: '',
+        name: '',
+        description: '',
+        category_id: '',
+        price: 0,
+        barcode: '',
+        unit: 'Piece',
+      });
+    }
+  }, [product, mode, open]);
 
   const { data: categories } = useCategories();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
 
   const generateSku = () => {
-    const prefix = 'PROD';
+    const prefix = 'EQ';
     const timestamp = Date.now().toString(36).toUpperCase();
     return `${prefix}-${timestamp}`;
   };
@@ -50,25 +73,22 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
       barcode: formData.barcode || '',
       unit: formData.unit || 'Piece',
       price: formData.price,
-      cost: formData.cost,
+      cost: 0, // Not used in organizational context but required by API
     };
 
     if (mode === 'create') {
       await createProduct.mutateAsync(payload);
     } else if (product) {
+      // Corrected the parameters to match useUpdateProduct implementation
       await updateProduct.mutateAsync({
         id: product.id,
-        updates: {
-          name: payload.name,
-          description: payload.description,
-          category_id: payload.category_id,
-          barcode: payload.barcode,
-          unit: payload.unit,
-          price: payload.price,
-          cost: payload.cost,
-        },
-        oldProduct: product,
-      });
+        name: payload.name,
+        description: payload.description,
+        categoryId: payload.category_id,
+        price: payload.price,
+        barcode: payload.barcode,
+        unit: payload.unit,
+      } as any);
     }
 
     onOpenChange(false);
@@ -78,110 +98,94 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-card border-border">
-        <DialogHeader>
-          <DialogTitle className="text-foreground">
-            {mode === 'create' ? 'Add New Product' : 'Edit Product'}
-          </DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4 mt-4">
-          <div className="space-y-2">
-            <Label>SKU</Label>
-            <Input
-              placeholder="PROD-001"
-              value={formData.sku}
-              onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              disabled={mode === 'edit'}
-              className="bg-secondary border-border"
-            />
-            {mode === 'create' && (
-              <p className="text-xs text-muted-foreground">Leave empty to auto-generate</p>
-            )}
+      <DialogContent className="max-w-xl bg-card border-border border-2 rounded-3xl p-0 overflow-hidden shadow-2xl">
+        <div className="bg-primary/5 p-6 border-b border-border/50">
+            <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <Package className="w-6 h-6 text-primary" />
+                    </div>
+                </div>
+                <DialogTitle className="text-2xl font-black uppercase tracking-tight text-foreground">
+                    {mode === 'create' ? 'Define Equipment Type' : 'Edit Equipment Specs'}
+                </DialogTitle>
+                <p className="text-xs text-muted-foreground font-medium italic">Define the standard specifications for this type of organizational asset.</p>
+            </DialogHeader>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Catalog ID (SKU)</Label>
+                <Input
+                  placeholder="EQ-001"
+                  value={formData.sku}
+                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                  disabled={mode === 'edit'}
+                  className="bg-secondary/50 border-border font-mono font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Short Name *</Label>
+                <Input
+                  placeholder="e.g. Dell Latitude 5420"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                  className="bg-secondary/50 border-border font-bold"
+                />
+              </div>
           </div>
+
           <div className="space-y-2">
-            <Label>Name *</Label>
-            <Input
-              placeholder="Product name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="col-span-2 space-y-2">
-            <Label>Description</Label>
+            <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Detailed Specifications</Label>
             <Textarea
-              placeholder="Product description"
+              placeholder="Processor, RAM, Color, etc."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="bg-secondary border-border"
+              className="bg-secondary/50 border-border min-h-[100px]"
             />
           </div>
-          <div className="col-span-2 space-y-2">
-            <Label>Category</Label>
-            <Select
-              value={formData.category_id}
-              onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-            >
-              <SelectTrigger className="bg-secondary border-border">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover border-border">
-                {categories?.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+
+          <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Classification</Label>
+                <Select
+                  value={formData.category_id}
+                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                >
+                  <SelectTrigger className="bg-secondary/50 border-border font-bold text-xs">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border-border border-2">
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id} className="text-xs font-bold">
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Estimated Unit Value ($)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  className="bg-secondary/50 border-border font-bold tabular-nums"
+                />
+              </div>
           </div>
-          <div className="space-y-2">
-            <Label>Unit</Label>
-            <Input
-              placeholder="Piece"
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Barcode</Label>
-            <Input
-              placeholder="Optional"
-              value={formData.barcode}
-              onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Cost ($)</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.cost}
-              onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) || 0 })}
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Selling Price ($)</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.01"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-              className="bg-secondary border-border"
-            />
-          </div>
-          <div className="col-span-2 flex justify-end gap-3 mt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+
+          <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-full px-6 font-bold">
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isLoading}>
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {mode === 'create' ? 'Add Product' : 'Save Changes'}
+            <Button type="submit" className="bg-primary hover:bg-primary/90 rounded-full px-12 font-black shadow-xl shadow-primary/20 h-12" disabled={isLoading}>
+              {isLoading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
+              {mode === 'create' ? 'Add to Catalog' : 'Update Specifications'}
             </Button>
           </div>
         </form>

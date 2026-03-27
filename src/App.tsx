@@ -15,11 +15,10 @@ import { Toaster as SonnerToaster } from "sonner";
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Products = lazy(() => import("./pages/Products"));
 const Assets = lazy(() => import("./pages/Assets"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const StockMovements = lazy(() => import("./pages/StockMovements"));
 const Warehouses = lazy(() => import("./pages/Warehouses"));
 const Categories = lazy(() => import("./pages/Categories"));
-const Suppliers = lazy(() => import("./pages/Suppliers"));
-const PurchaseOrders = lazy(() => import("./pages/PurchaseOrders"));
-const Customers = lazy(() => import("./pages/Customers"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -52,11 +51,10 @@ const App = () => (
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
                   <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
+                  <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+                  <Route path="/movements" element={<ProtectedRoute><StockMovements /></ProtectedRoute>} />
                   <Route path="/warehouses" element={<ProtectedRoute><Warehouses /></ProtectedRoute>} />
                   <Route path="/categories" element={<ProtectedRoute><Categories /></ProtectedRoute>} />
-                  <Route path="/suppliers" element={<ProtectedRoute><Suppliers /></ProtectedRoute>} />
-                  <Route path="/orders" element={<ProtectedRoute><PurchaseOrders /></ProtectedRoute>} />
-                  <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
                   <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
                   <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

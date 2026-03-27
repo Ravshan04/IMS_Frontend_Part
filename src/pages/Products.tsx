@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Download, Loader2 } from 'lucide-react';
+import { Plus, Download, Loader2, Package, Search } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import DataTable from '@/components/ui/data-table';
@@ -22,7 +22,7 @@ export default function Products() {
   });
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  
+  const [editingProduct, setEditingProduct] = useState<Product | undefined>();
 
   const { data: products, isLoading } = useProducts(filters.categoryId ? {
     categoryId: filters.categoryId || undefined,
@@ -37,7 +37,7 @@ export default function Products() {
   const handleExport = useCallback(() => {
     if (!products) return;
 
-    const headers = ['SKU', 'Name', 'Description', 'Category', 'Unit', 'Price', 'Cost'];
+    const headers = ['SKU', 'Name', 'Description', 'Category', 'Unit', 'Estimated Value'];
     const rows = products.map(p => [
       p.sku,
       p.name,
@@ -45,7 +45,6 @@ export default function Products() {
       getCategoryName(p.category_id),
       p.unit || 'Piece',
       p.price.toString(),
-      p.cost.toString(),
     ]);
 
     const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -53,7 +52,7 @@ export default function Products() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `products-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `inventory-catalog-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }, [products, getCategoryName]);
@@ -61,134 +60,111 @@ export default function Products() {
   const columns = useMemo(() => [
     {
       key: 'sku',
-      header: 'SKU',
+      header: 'Catalog ID',
       sortable: true,
       render: (item: Product) => (
-        <span className="font-mono text-sm text-primary font-medium">{item.sku}</span>
+        <span className="font-mono text-xs text-primary font-black tracking-tight">{item.sku}</span>
       ),
     },
     {
       key: 'name',
-      header: 'Product',
+      header: 'Equipment Type',
       sortable: true,
       render: (item: Product) => (
         <div className="max-w-[250px]">
-          <p className="font-medium text-foreground truncate">{item.name}</p>
-          <p className="text-xs text-muted-foreground truncate">
-            {item.description || 'No description'}
+          <p className="font-bold text-foreground truncate">{item.name}</p>
+          <p className="text-[10px] text-muted-foreground truncate uppercase font-black tracking-tighter">
+            {item.description || 'No specialized description'}
           </p>
         </div>
       ),
     },
     {
       key: 'category',
-      header: 'Category',
+      header: 'Classification',
       render: (item: Product) => (
-        <Badge variant="outline" className="bg-secondary/30 border-border/50 font-normal">
+        <Badge variant="outline" className="bg-secondary/30 border-border/50 font-black text-[10px] uppercase tracking-widest border-2">
           {getCategoryName(item.category_id)}
         </Badge>
       ),
     },
     {
-      key: 'unit',
-      header: 'Unit',
-      sortable: true,
-      render: (item: Product) => (
-        <span className="text-muted-foreground text-sm">{item.unit || 'Piece'}</span>
-      ),
-    },
-    {
       key: 'price',
-      header: 'Price',
+      header: 'Value / Price',
       sortable: true,
       render: (item: Product) => (
-        <span className="font-medium text-foreground">${item.price.toLocaleString()}</span>
-      ),
-    },
-    {
-      key: 'actions',
-      header: 'Actions',
-      render: (item: Product) => (
-        <div className="text-xs text-muted-foreground">-</div>
+        <span className="font-bold text-foreground tabular-nums">${item.price.toLocaleString()}</span>
       ),
     },
   ], [getCategoryName]);
 
-  const clearFilters = useCallback(() => {
-    setFilters({ categoryId: '' });
-  }, []);
-
   return (
     <MainLayout>
-      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
         <PageHeader
-          title="Products"
-          description="Manage your product catalog and pricing."
+          title="Equipment Catalog"
+          description="Manage the list of allowed equipment types and furniture for the organization."
         >
-          <Button variant="outline" className="border-border hidden sm:flex" onClick={handleExport} disabled={!products?.length}>
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          {canManageCatalog && (
-            <Button className="bg-primary hover:bg-primary/90 shadow-sm" onClick={() => setCreateModalOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
+          <div className="flex gap-2">
+            <Button variant="outline" className="border-border hidden sm:flex font-bold rounded-full px-5" onClick={handleExport} disabled={!products?.length}>
+                <Download className="w-4 h-4 mr-2" />
+                Export Catalog
             </Button>
-          )}
+            {canManageCatalog && (
+                <Button className="bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-full px-6 font-black tracking-tight" onClick={() => {
+                    setEditingProduct(undefined);
+                    setCreateModalOpen(true);
+                }}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Item Type
+                </Button>
+            )}
+          </div>
         </PageHeader>
 
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3 mb-6 animate-fade-in [animation-delay:100ms]">
-          <Select
-            value={filters.categoryId}
-            onValueChange={(value) => setFilters(f => ({ ...f, categoryId: value === 'all' ? '' : value }))}
-          >
-            <SelectTrigger className="w-[160px] bg-secondary/50 border-border">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories?.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {(filters.categoryId) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-9 text-muted-foreground hover:text-foreground"
-              onClick={clearFilters}
+        <div className="flex flex-wrap items-center gap-3">
+            <Select
+                value={filters.categoryId}
+                onValueChange={(value) => setFilters(f => ({ ...f, categoryId: value === 'all' ? '' : value }))}
             >
-              Clear
-            </Button>
-          )}
+                <SelectTrigger className="w-[200px] bg-secondary/50 border-border font-bold">
+                    <SelectValue placeholder="All Classifications" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border border-2">
+                    <SelectItem value="all">All Classifications</SelectItem>
+                    {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
         </div>
 
-        {/* Data Table */}
-        <div className="animate-slide-up [animation-delay:200ms]">
+        <div className="animate-slide-up glass rounded-3xl border-border/30 overflow-hidden shadow-2xl">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-4">
-              <Loader2 className="w-10 h-10 animate-spin text-primary opacity-50" />
-              <p className="text-muted-foreground animate-pulse">Loading products...</p>
+            <div className="flex flex-col items-center justify-center py-32 gap-6 bg-card/50">
+               <Loader2 className="w-12 h-12 animate-spin text-primary opacity-50" />
+               <p className="text-sm font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing catalog data...</p>
             </div>
           ) : (
             <DataTable
               data={products || []}
               columns={columns}
               searchKeys={['name', 'sku', 'description']}
-              emptyMessage="No products found matching your criteria."
+              onRowClick={(item) => {
+                setEditingProduct(item);
+                setCreateModalOpen(true);
+              }}
+              emptyMessage="No equipment types found."
             />
           )}
         </div>
       </div>
 
-      {/* Modals */}
       <ProductFormModal
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        mode="create"
+        product={editingProduct}
+        mode={editingProduct ? 'edit' : 'create'}
       />
     </MainLayout>
   );

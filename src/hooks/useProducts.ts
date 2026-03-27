@@ -80,8 +80,18 @@ export function useUpdateProduct() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async () => {
-      throw new Error('Update product is not supported by the backend yet.');
+    mutationFn: async (product: Partial<Product> & { id: string }) => {
+      const data = await apiService.put<ProductDto>(`/products/${product.id}`, {
+        sku: product.sku,
+        barcode: product.barcode ?? '',
+        name: product.name,
+        description: product.description ?? '',
+        categoryId: product.category_id ?? EMPTY_GUID,
+        unit: product.unit ?? 'Piece',
+        cost: product.cost ?? 0,
+        sellingPrice: product.price ?? 0,
+      });
+      return mapProductDto(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -99,8 +109,8 @@ export function useDeleteProduct() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async () => {
-      throw new Error('Delete product is not supported by the backend yet.');
+    mutationFn: async (id: string) => {
+      await apiService.delete(`/products/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });

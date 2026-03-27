@@ -1,24 +1,14 @@
 export type AppRole = 'Owner' | 'Admin' | 'Manager' | 'WarehouseOperator' | 'Viewer';
-export type OrderStatus =
-  | 'draft'
-  | 'pending'
-  | 'approved'
-  | 'confirmed'
-  | 'packed'
-  | 'shipped'
-  | 'received'
-  | 'delivered'
-  | 'cancelled';
+
 export type NotificationType =
   | 'low_stock'
-  | 'order_created'
-  | 'order_approved'
-  | 'order_shipped'
-  | 'order_received'
-  | 'order_cancelled'
-  | 'expired_stock'
+  | 'asset_assigned'
+  | 'asset_repair_started'
+  | 'asset_repair_completed'
+  | 'asset_retired'
+  | 'asset_warranty_expired'
+  | 'asset_maintenance_due'
   | 'system';
-export type CustomerStatus = 'active' | 'inactive';
 
 export interface Profile {
   id: string;
@@ -49,20 +39,6 @@ export interface Category {
   updated_at: string;
 }
 
-export interface Supplier {
-  id: string;
-  name: string;
-  contact_person: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  rating: number;
-  lead_time: number;
-  product_count: number;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Product {
   id: string;
   sku: string;
@@ -71,61 +47,19 @@ export interface Product {
   category_id: string | null;
   cost: number;
   price: number;
+  reorder_point?: number;
+  reorder_quantity?: number;
+  tags?: string[];
+  images?: string[];
   created_at: string;
   updated_at: string;
-  // Backend fields (optional)
   barcode?: string;
   unit?: string;
   weight?: number;
   length?: number;
   width?: number;
   height?: number;
-  // Joined data
   category?: Category;
-}
-
-export interface Customer {
-  id: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  status: CustomerStatus;
-  total_orders: number;
-  total_spent: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PurchaseOrder {
-  id: string;
-  order_number: string;
-  supplier_id: string | null;
-  warehouse_id?: string | null;
-  status: OrderStatus;
-  total_amount: number;
-  order_date: string;
-  expected_date: string | null;
-  received_date: string | null;
-  notes: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-  // Joined data
-  supplier?: Supplier;
-  items?: PurchaseOrderItem[];
-}
-
-export interface PurchaseOrderItem {
-  id: string;
-  order_id: string;
-  product_id: string | null;
-  quantity: number;
-  unit_cost: number;
-  received_quantity: number;
-  created_at: string;
-  // Joined data
-  product?: Product;
 }
 
 export interface Notification {
@@ -148,7 +82,6 @@ export interface ProductHistory {
   new_value: string | null;
   changed_by: string | null;
   created_at: string;
-  // Joined data
   profile?: Profile;
 }
 
@@ -157,6 +90,9 @@ export interface Warehouse {
   name: string;
   location: string | null;
   description: string | null;
+  contact_person?: string | null;
+  phone?: string | null;
+  is_active?: boolean;
   organization_id: string;
   created_at: string;
   updated_at: string;
@@ -178,8 +114,29 @@ export interface AssetItem {
   organization_id: string;
   created_at: string;
   updated_at: string;
-  // Joined data
   product?: Product;
   warehouse?: Warehouse;
   profile?: Profile;
+}
+
+export interface InventoryStatus {
+  product_id: string;
+  warehouse_id: string;
+  quantity: number;
+  reserved_quantity: number;
+  available_quantity: number;
+  last_stock_update: string;
+}
+
+export interface StockMovement {
+  id: string;
+  product_id: string;
+  warehouse_id: string;
+  movement_type: 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT' | 'RETURN' | 'ASSIGNMENT' | 'REPAIR';
+  quantity: number;
+  reference_type: string;
+  reference_id: string;
+  notes: string;
+  performed_by: string;
+  created_at: string;
 }
