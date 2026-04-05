@@ -105,7 +105,7 @@ export default function DataTable<T extends object>({
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search..."
+            placeholder="Qidirish..."
             value={search}
             onChange={handleSearchChange}
             className="pl-10 bg-secondary border-border focus-visible:ring-primary"
@@ -177,9 +177,9 @@ export default function DataTable<T extends object>({
       {sortedData.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 px-2">
           <p className="text-sm text-muted-foreground">
-            Showing <span className="font-medium text-foreground">{(currentPage - 1) * pageSize + 1}</span> to{' '}
-            <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, sortedData.length)}</span> of{' '}
-            <span className="font-medium text-foreground">{sortedData.length}</span> entries
+            Jami <span className="font-medium text-foreground">{sortedData.length}</span> ta yozuvdan{' '}
+            <span className="font-medium text-foreground">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+            <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, sortedData.length)}</span> ko'rsatilmoqda
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -201,7 +201,7 @@ export default function DataTable<T extends object>({
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <div className="flex items-center justify-center min-w-[100px] text-sm font-medium">
-              Page {currentPage} of {totalPages}
+              Sahifa: {currentPage} / {totalPages}
             </div>
             <Button
               variant="outline"

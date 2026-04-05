@@ -7,10 +7,14 @@ import { Button } from '@/components/ui/button';
 import { useWarehouses } from '@/hooks/useWarehouses';
 import { Warehouse } from '@/types/database';
 import { useLanguage } from '@/contexts/LanguageContext';
+import WarehouseFormModal from '@/components/warehouses/WarehouseFormModal';
 
 export default function Warehouses() {
   const { t } = useLanguage();
   const { data: warehouses, isLoading } = useWarehouses();
+
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | undefined>();
 
   const columns = useMemo(() => [
     {
@@ -55,9 +59,15 @@ export default function Warehouses() {
           title={t('warehouses')}
           description="Manage rooms, labs, offices and storage facilities across your organization buildings."
         >
-          <Button className="bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-full px-6 font-black tracking-tight">
+          <Button 
+            className="bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-full px-6 font-black tracking-tight"
+            onClick={() => {
+              setEditingWarehouse(undefined);
+              setCreateModalOpen(true);
+            }}
+          >
             <Plus className="w-4 h-4 mr-2" />
-            Regiser Facility
+            Register Facility
           </Button>
         </PageHeader>
 
@@ -85,10 +95,21 @@ export default function Warehouses() {
               columns={columns}
               searchKeys={['name', 'location', 'description']}
               emptyMessage="No facilities defined. Add your first room or office."
+              onRowClick={(item) => {
+                setEditingWarehouse(item);
+                setCreateModalOpen(true);
+              }}
             />
           )}
         </div>
       </div>
+
+      <WarehouseFormModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        warehouse={editingWarehouse}
+        mode={editingWarehouse ? 'edit' : 'create'}
+      />
     </MainLayout>
   );
 }
