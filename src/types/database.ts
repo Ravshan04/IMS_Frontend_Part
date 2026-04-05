@@ -47,18 +47,18 @@ export interface Product {
   category_id: string | null;
   cost: number;
   price: number;
-  reorder_point?: number;
-  reorder_quantity?: number;
+  reorder_point: number;
+  reorder_quantity: number;
   tags?: string[];
   images?: string[];
   created_at: string;
   updated_at: string;
-  barcode?: string;
-  unit?: string;
-  weight?: number;
-  length?: number;
-  width?: number;
-  height?: number;
+  barcode: string;
+  unit: string;
+  weight: number;
+  length: number;
+  width: number;
+  height: number;
   category?: Category;
 }
 
@@ -90,9 +90,9 @@ export interface Warehouse {
   name: string;
   location: string | null;
   description: string | null;
-  contact_person?: string | null;
-  phone?: string | null;
-  is_active?: boolean;
+  contact_person: string | null;
+  phone: string | null;
+  is_active: boolean;
   organization_id: string;
   created_at: string;
   updated_at: string;
@@ -112,6 +112,7 @@ export interface AssetItem {
   assigned_to_user_id: string | null;
   notes: string | null;
   organization_id: string;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
   product?: Product;
@@ -139,4 +140,35 @@ export interface StockMovement {
   notes: string;
   performed_by: string;
   created_at: string;
+}
+
+export interface UserSummary {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  roles: string[];
+  warehouse_ids: string[];
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+export interface AssetLabel {
+  asset_code: string;
+  qr_payload: string;
+  barcode_payload: string;
+  qr_image_url: string;
+  barcode_image_url: string;
+}
+
+export interface AuthUser {
+  token: string;
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  organizationId: string;
+  roles: string[];
+  permissions: string[];
 }

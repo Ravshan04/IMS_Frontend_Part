@@ -32,7 +32,7 @@ export default function AssetDetailsModal({ asset, open, onOpenChange, productNa
       setFormData({
         status: asset.status,
         condition: asset.condition,
-        assignedUserId: asset.assignedUserId || '',
+        assignedUserId: asset.assigned_to_user_id || '',
         notes: asset.notes || '',
       });
     }
@@ -43,7 +43,7 @@ export default function AssetDetailsModal({ asset, open, onOpenChange, productNa
   const handleUpdate = async () => {
     try {
       await updateStatus.mutateAsync({
-        assetCode: asset.assetCode,
+        assetCode: asset.asset_code,
         status: formData.status,
         condition: formData.condition,
         assignedUserId: formData.assignedUserId || undefined,
@@ -63,12 +63,12 @@ export default function AssetDetailsModal({ asset, open, onOpenChange, productNa
               <div className="space-y-1">
                  <div className="flex items-center gap-2 mb-1">
                     <Tag className="w-4 h-4 text-primary" />
-                    <span className="font-mono text-xs font-black text-primary tracking-widest">{asset.assetCode}</span>
+                    <span className="font-mono text-xs font-black text-primary tracking-widest">{asset.asset_code}</span>
                  </div>
                  <DialogTitle className="text-3xl font-black tracking-tight text-foreground uppercase">
                   {productName || 'Equipment Unit'}
                  </DialogTitle>
-                 <p className="text-xs text-muted-foreground font-mono font-bold uppercase tracking-tight">S/N: {asset.serialNumber || 'N/A'}</p>
+                 <p className="text-xs text-muted-foreground font-mono font-bold uppercase tracking-tight">S/N: {asset.serial_number || 'N/A'}</p>
               </div>
               <Badge className="bg-primary/20 text-primary border-primary/30 border-2 px-4 py-1 rounded-full font-black text-[10px] uppercase tracking-widest">
                 Internal Asset
@@ -137,7 +137,7 @@ export default function AssetDetailsModal({ asset, open, onOpenChange, productNa
                                 <UserIcon className="w-5 h-5 text-primary" />
                             </div>
                             <div className="flex-1">
-                                <p className="text-xs font-bold text-foreground">{asset.assignedUserId ? "Assigned User" : "Unassigned"}</p>
+                                <p className="text-xs font-bold text-foreground">{asset.assigned_to_user_id ? "Assigned User" : "Unassigned"}</p>
                                 <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">Organization Staff</p>
                             </div>
                         </div>

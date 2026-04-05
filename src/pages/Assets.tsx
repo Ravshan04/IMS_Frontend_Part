@@ -42,7 +42,7 @@ export default function Assets() {
       render: (item: AssetItem) => (
         <div className="flex items-center gap-2">
             <Tag className="w-4 h-4 text-primary opacity-70" />
-            <span className="font-mono text-sm font-medium text-primary">{item.assetCode}</span>
+            <span className="font-mono text-sm font-medium text-primary">{item.asset_code}</span>
         </div>
       ),
     },
@@ -51,8 +51,8 @@ export default function Assets() {
       header: 'Product',
       render: (item: AssetItem) => (
         <div className="max-w-[200px]">
-          <p className="font-medium text-foreground truncate">{productMap.get(item.productId)?.name || 'Unknown'}</p>
-          <p className="text-xs text-muted-foreground font-mono">{item.serialNumber || 'No Serial'}</p>
+          <p className="font-medium text-foreground truncate">{productMap.get(item.product_id)?.name || 'Unknown'}</p>
+          <p className="text-xs text-muted-foreground font-mono">{item.serial_number || 'No Serial'}</p>
         </div>
       ),
     },
@@ -62,7 +62,7 @@ export default function Assets() {
       render: (item: AssetItem) => (
         <div className="flex items-center gap-2">
             <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-foreground text-sm font-semibold">{warehouseMap.get(item.warehouseId)?.name || 'Central Store'}</span>
+            <span className="text-foreground text-sm font-semibold">{warehouseMap.get(item.warehouse_id)?.name || 'Central Store'}</span>
         </div>
       ),
     },
@@ -105,7 +105,7 @@ export default function Assets() {
                 <div className="w-6 h-6 rounded-full bg-secondary flex items-center justify-center border-border border">
                      <User className="w-3 h-3 text-muted-foreground" />
                 </div>
-                <span className="text-[11px] font-bold text-muted-foreground">{item.assignedUserId ? "Assigned" : "Available"}</span>
+                <span className="text-[11px] font-bold text-muted-foreground">{item.assigned_to_user_id ? "Assigned" : "Available"}</span>
             </div>
         )
     }
@@ -192,7 +192,7 @@ export default function Assets() {
             <DataTable
               data={assets || []}
               columns={columns}
-              searchKeys={['assetCode', 'serialNumber']}
+              searchKeys={['asset_code', 'serial_number']}
               emptyMessage="No individual assets found."
               onRowClick={(item) => {
                 setSelectedAsset(item);
@@ -211,8 +211,8 @@ export default function Assets() {
             asset={selectedAsset}
             open={detailsModalOpen}
             onOpenChange={setDetailsModalOpen}
-            productName={selectedAsset ? productMap.get(selectedAsset.productId)?.name : ''}
-            locationName={selectedAsset ? warehouseMap.get(selectedAsset.warehouseId)?.name : ''}
+            productName={selectedAsset ? productMap.get(selectedAsset.product_id)?.name : ''}
+            locationName={selectedAsset ? warehouseMap.get(selectedAsset.warehouse_id)?.name : ''}
         />
       </div>
     </MainLayout>

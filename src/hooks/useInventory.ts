@@ -3,7 +3,14 @@ import { apiService } from '@/services/apiService';
 import { InventoryStatus, StockMovement } from '@/types/database';
 import { mapInventoryDto, mapStockMovementDto } from '@/services/apiMappers';
 import { useToast } from '@/hooks/use-toast';
-import { InventoryStatusDto, StockMovementDto } from '@/types/api';
+import { 
+  InventoryStatusDto, 
+  StockMovementDto, 
+  InventoryImportRequest, 
+  InventoryImportResult,
+  MovementType,
+  ReferenceType
+} from '@/types/api';
 
 export function useInventory(warehouseId?: string) {
   return useQuery({
@@ -50,12 +57,20 @@ export function useRegisterMovement() {
       productId: string;
       warehouseId: string;
       quantity: number;
-      type: number; // MovementType enum in backend
-      refType: number; // ReferenceType enum in backend
+      type: MovementType;
+      refType: ReferenceType;
       refId: string;
       notes?: string;
     }) => {
-      await apiService.post('/inventory/movement', movement);
+      await apiService.post('/inventory/movement', {
+        productId: movement.productId,
+        warehouseId: movement.warehouseId,
+        quantity: movement.quantity,
+        type: movement.type,
+        refType: movement.refType,
+        refId: movement.refId,
+        notes: movement.notes ?? ''
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -64,6 +79,38 @@ export function useRegisterMovement() {
     },
     onError: (error: Error) => {
       toast({ title: 'Error registering movement', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useProductStock(productId: string | undefined, warehouseId: string | undefined) {
+  return useQuery({
+    queryKey: ['product-stock', productId, warehouseId],
+    queryFn: async () => {
+      const data = await apiService.get<{ productId: string; warehouseId: string; availableStock: number }>(
+        `/inventory/product/${productId}/warehouse/${warehouseId}`
+      );
+      return data;
+    },
+    enabled: !!productId && !!warehouseId,
+  });
+}
+
+export function useImportInventory() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (request: InventoryImportRequest) => {
+      return await apiService.post<InventoryImportResult>('/inventory/import', request);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-movements'] });
+      toast({ title: `Import successful: ${data.movementCount} movements created` });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error importing inventory', description: error.message, variant: 'destructive' });
     },
   });
 }

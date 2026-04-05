@@ -24,13 +24,13 @@ interface SessionStorage extends Session {
 
 interface AuthResponse {
   token: string;
+  userId: string;
   email: string;
   firstName: string;
   lastName: string;
   organizationId: string;
   roles: string[];
   permissions: string[];
-  userId?: string;
 }
 
 interface AuthContextType {
@@ -92,8 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     try {
       const response = await apiService.post<AuthResponse>('/auth/login', { email, password });
-      const sessionData: Session = {
+      const sessionData: SessionStorage = {
         token: response.token,
+        userId: response.userId,
         email: response.email,
         firstName: response.firstName,
         lastName: response.lastName,
@@ -101,10 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         roles: response.roles,
         permissions: response.permissions
       };
-      
+
       localStorage.setItem('ombor_session', JSON.stringify(sessionData));
       setSession(sessionData);
-      const userId = response.userId ?? '1';
+      const userId = response.userId;
       const now = new Date().toISOString();
       setUser({ id: userId, email: response.email });
       setProfile({

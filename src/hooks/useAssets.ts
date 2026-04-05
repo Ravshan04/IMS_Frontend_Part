@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/apiService';
 import { AssetItem } from '@/types/database';
-import { mapAssetDto } from '@/services/apiMappers';
+import { mapAssetDto, mapAssetLabelDto } from '@/services/apiMappers';
 import { useToast } from '@/hooks/use-toast';
-import { AssetDto } from '@/types/api';
+import { AssetDto, AssetLabelDto } from '@/types/api';
 
 export function useAssets(filters?: {
   productId?: string;
@@ -26,6 +26,28 @@ export function useAssets(filters?: {
         throw error;
       }
     },
+  });
+}
+
+export function useAsset(assetCode: string | undefined) {
+  return useQuery({
+    queryKey: ['assets', assetCode],
+    queryFn: async () => {
+      const data = await apiService.get<AssetDto>(`/assets/${assetCode}`);
+      return mapAssetDto(data);
+    },
+    enabled: !!assetCode,
+  });
+}
+
+export function useAssetLabel(assetCode: string | undefined) {
+  return useQuery({
+    queryKey: ['asset-label', assetCode],
+    queryFn: async () => {
+      const data = await apiService.get<AssetLabelDto>(`/assets/${assetCode}/label`);
+      return mapAssetLabelDto(data);
+    },
+    enabled: !!assetCode,
   });
 }
 
@@ -86,6 +108,28 @@ export function useUpdateAssetStatus() {
     },
     onError: (error: Error) => {
       toast({ title: 'Error updating asset', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useMoveAsset() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ assetCode, toWarehouseId, notes }: { assetCode: string; toWarehouseId: string; notes?: string }) => {
+      const data = await apiService.patch<AssetDto>(`/assets/${assetCode}/move`, {
+        toWarehouseId,
+        notes: notes ?? '',
+      });
+      return mapAssetDto(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
+      toast({ title: 'Asset moved successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error moving asset', description: error.message, variant: 'destructive' });
     },
   });
 }

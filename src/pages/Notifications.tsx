@@ -7,29 +7,33 @@ import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { NotificationType } from '@/types/database';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-const notificationIcons: Record<NotificationType, React.ElementType> = {
+const notificationIcons: Record<string, React.ElementType> = {
   low_stock: AlertTriangle,
-  order_created: Package,
-  order_approved: CheckCircle,
-  order_shipped: Truck,
-  order_received: CheckCircle,
-  order_cancelled: X,
+  asset_assigned: CheckCircle,
+  asset_repair_started: Clock,
+  asset_repair_completed: CheckCircle,
+  asset_retired: X,
+  asset_warranty_expired: AlertTriangle,
+  asset_maintenance_due: Clock,
   system: Bell,
 };
 
-const notificationColors: Record<NotificationType, string> = {
+const notificationColors: Record<string, string> = {
   low_stock: 'text-warning',
-  order_created: 'text-primary',
-  order_approved: 'text-success',
-  order_shipped: 'text-primary',
-  order_received: 'text-success',
-  order_cancelled: 'text-destructive',
+  asset_assigned: 'text-primary',
+  asset_repair_started: 'text-primary',
+  asset_repair_completed: 'text-success',
+  asset_retired: 'text-destructive',
+  asset_warranty_expired: 'text-warning',
+  asset_maintenance_due: 'text-warning',
   system: 'text-muted-foreground',
 };
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const { data: notifications, isLoading } = useNotifications();
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
@@ -51,12 +55,11 @@ export default function Notifications() {
         case 'low_stock':
           navigate(`/products?highlight=${notification.reference_id}`);
           break;
-        case 'order_created':
-        case 'order_approved':
-        case 'order_shipped':
-        case 'order_received':
-        case 'order_cancelled':
-          navigate(`/orders?view=${notification.reference_id}`);
+        case 'asset_assigned':
+        case 'asset_repair_started':
+        case 'asset_repair_completed':
+        case 'asset_retired':
+          navigate(`/assets?view=${notification.reference_id || ''}`);
           break;
       }
     }
@@ -69,12 +72,12 @@ export default function Notifications() {
         <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">Notifications</h1>
-              <p className="text-muted-foreground">Stay updated with inventory alerts</p>
+              <h1 className="text-3xl font-bold text-foreground mb-2">{t('notifications')}</h1>
+              <p className="text-muted-foreground">{t('overview_desc')}</p>
             </div>
             {unreadCount > 0 && (
               <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                {unreadCount} unread
+                {unreadCount} {t('lowStock').toLowerCase()}
               </span>
             )}
           </div>
@@ -87,7 +90,7 @@ export default function Notifications() {
                 disabled={markAllAsRead.isPending}
               >
                 {markAllAsRead.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Mark all as read
+                {t('save')}
               </Button>
             )}
           </div>
@@ -101,8 +104,16 @@ export default function Notifications() {
         ) : notifications && notifications.length > 0 ? (
           <div className="space-y-4">
             {notifications.map((notification, index) => {
-              const Icon = notificationIcons[notification.type];
-              const iconColor = notificationColors[notification.type];
+              const Icon = notificationIcons[notification.type] || Bell;
+              const iconColor = notificationColors[notification.type] || 'text-muted-foreground';
+              const formattedDate = (() => {
+                try {
+                  return formatDistanceToNow(new Date(notification.created_at), { addSuffix: true });
+                } catch (e) {
+                  return 'just now';
+                }
+              })();
+
               return (
                 <div
                   key={notification.id}
@@ -127,7 +138,7 @@ export default function Notifications() {
                         </h3>
                         <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
                         <p className="text-xs text-muted-foreground/60 mt-2">
-                          {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+                          {formattedDate}
                         </p>
                       </div>
                       {!notification.read && (
@@ -144,8 +155,8 @@ export default function Notifications() {
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               <Bell className="w-8 h-8 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">No notifications</h3>
-            <p className="text-muted-foreground">You're all caught up!</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">{t('notifications')}</h3>
+            <p className="text-muted-foreground">{t('overview_desc')}</p>
           </div>
         )}
       </div>

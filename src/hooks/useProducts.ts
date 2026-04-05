@@ -61,6 +61,8 @@ export function useCreateProduct() {
         length: product.length ?? 0,
         width: product.width ?? 0,
         height: product.height ?? 0,
+        reorderPoint: product.reorder_point ?? 0,
+        reorderQuantity: product.reorder_quantity ?? 0,
       });
       return mapProductDto(data);
     },
@@ -90,6 +92,8 @@ export function useUpdateProduct() {
         unit: product.unit ?? 'Piece',
         cost: product.cost ?? 0,
         sellingPrice: product.price ?? 0,
+        reorderPoint: product.reorder_point ?? 0,
+        reorderQuantity: product.reorder_quantity ?? 0,
       });
       return mapProductDto(data);
     },

@@ -20,6 +20,17 @@ export function useWarehouses() {
   });
 }
 
+export function useWarehouse(id: string | undefined) {
+  return useQuery({
+    queryKey: ['warehouses', id],
+    queryFn: async () => {
+      const data = await apiService.get<WarehouseDto>(`/warehouses/${id}`);
+      return mapWarehouseDto(data);
+    },
+    enabled: !!id,
+  });
+}
+
 export function useCreateWarehouse() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -46,6 +57,52 @@ export function useCreateWarehouse() {
     },
     onError: (error: Error) => {
       toast({ title: 'Error creating warehouse', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useUpdateWarehouse() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ id, ...warehouse }: { id: string; name: string; code?: string; street?: string; city?: string; state?: string; country?: string; zipCode?: string; contactPerson?: string; phone?: string }) => {
+      await apiService.put(`/warehouses/${id}`, {
+        name: warehouse.name,
+        code: warehouse.code || warehouse.name?.slice(0, 6).toUpperCase() || 'WH',
+        street: warehouse.street ?? '',
+        city: warehouse.city ?? '',
+        state: warehouse.state ?? '',
+        country: warehouse.country ?? '',
+        zipCode: warehouse.zipCode ?? '',
+        contactPerson: warehouse.contactPerson ?? '',
+        phone: warehouse.phone ?? '',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      toast({ title: 'Warehouse updated successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error updating warehouse', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useDeleteWarehouse() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiService.delete(`/warehouses/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      toast({ title: 'Warehouse deleted successfully' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error deleting warehouse', description: error.message, variant: 'destructive' });
     },
   });
 }

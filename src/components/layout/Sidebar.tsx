@@ -35,11 +35,14 @@ export default function Sidebar() {
 
   const navigation = useMemo(() => [
     { name: t('dashboard'), href: '/', icon: LayoutDashboard },
+    { name: t('products'), href: '/products', icon: Box },
     { name: t('assets'), href: '/assets', icon: ShieldCheck },
     { name: t('inventory'), href: '/inventory', icon: Package },
     { name: t('movements'), href: '/movements', icon: History },
     { name: t('warehouses'), href: '/warehouses', icon: MapPin },
     { name: t('categories'), href: '/categories', icon: FolderTree },
+    { name: t('reports'), href: '/reports', icon: FileText },
+    { name: t('users'), href: '/users', icon: Users },
     { name: t('notifications'), href: '/notifications', icon: Bell, showBadge: true },
     { name: t('settings'), href: '/settings', icon: Settings },
   ], [t]);

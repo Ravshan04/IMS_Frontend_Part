@@ -9,6 +9,8 @@ import type {
   Warehouse,
   InventoryStatus,
   StockMovement,
+  UserSummary,
+  AssetLabel,
 } from '@/types/database';
 import type {
   CategoryDto,
@@ -18,14 +20,15 @@ import type {
   WarehouseDto,
   InventoryStatusDto,
   StockMovementDto,
+  UserSummaryDto,
+  AssetLabelDto,
 } from '@/types/api';
 
 const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 
 export function normalizeNotificationType(type: string | undefined): NotificationType {
   if (!type) return 'system';
-  const value = type.toLowerCase();
-  const mapped = value
+  const mapped = type
     .replace(/([a-z])([A-Z])/g, '$1_$2')
     .replace(/\s+/g, '_')
     .toLowerCase() as NotificationType;
@@ -92,22 +95,22 @@ export function mapProductDto(dto: ProductDto): Product {
     id: dto.id,
     sku: dto.sku,
     name: dto.name,
-    description: dto.description ?? null,
-    category_id: dto.categoryId ?? null,
-    cost: dto.cost ?? 0,
-    price: dto.sellingPrice ?? 0,
+    description: dto.description ?? '',
+    category_id: dto.categoryId,
+    cost: dto.cost,
+    price: dto.sellingPrice,
     reorder_point: dto.reorderPoint,
-    reorder_quantity: dto.reorderQuantity ?? 0,
+    reorder_quantity: dto.reorderQuantity,
     tags: dto.tags ?? [],
     images: dto.images ?? [],
-    created_at: dto.createdAt ?? new Date().toISOString(),
-    updated_at: dto.updatedAt ?? new Date().toISOString(),
-    barcode: dto.barcode ?? '',
-    unit: dto.unit ?? 'Piece',
-    weight: dto.weight ?? 0,
-    length: dto.length ?? 0,
-    width: dto.width ?? 0,
-    height: dto.height ?? 0,
+    created_at: dto.createdAt,
+    updated_at: dto.updatedAt ?? dto.createdAt,
+    barcode: dto.barcode,
+    unit: dto.unit,
+    weight: dto.weight,
+    length: dto.length,
+    width: dto.width,
+    height: dto.height,
   };
 }
 
@@ -121,7 +124,7 @@ export function mapNotificationDto(dto: NotificationDto): Notification {
     reference_id: dto.referenceId ?? null,
     reference_type: dto.referenceType ?? null,
     read: !!dto.read,
-    created_at: dto.createdAt ?? new Date().toISOString(),
+    created_at: dto.createdAt,
   };
 }
 
@@ -131,14 +134,15 @@ export function mapAssetDto(dto: AssetDto): AssetItem {
     asset_code: dto.assetCode,
     product_id: dto.productId,
     warehouse_id: dto.warehouseId,
-    serial_number: dto.serialNumber ?? null,
+    serial_number: dto.serialNumber,
     status: normalizeAssetStatus(dto.status),
     condition: normalizeAssetCondition(dto.condition),
     assigned_to_user_id: dto.assignedUserId ?? null,
-    notes: dto.notes ?? null,
-    organization_id: dto.organizationId ?? EMPTY_GUID,
-    created_at: dto.createdAt ?? new Date().toISOString(),
-    updated_at: dto.lastMovedAt ?? dto.createdAt ?? new Date().toISOString(),
+    notes: dto.notes,
+    organization_id: dto.organizationId,
+    is_active: dto.isActive,
+    created_at: dto.createdAt,
+    updated_at: dto.lastMovedAt ?? dto.createdAt,
   };
 }
 
@@ -149,12 +153,12 @@ export function mapWarehouseDto(dto: WarehouseDto): Warehouse {
     name: dto.name,
     location: locationParts.length > 0 ? locationParts.join(', ') : null,
     description: dto.code ? `Code: ${dto.code}` : null,
-    contact_person: dto.contactPerson ?? null,
-    phone: dto.phone ?? null,
-    is_active: dto.isActive ?? true,
-    organization_id: dto.organizationId ?? EMPTY_GUID,
-    created_at: dto.createdAt ?? new Date().toISOString(),
-    updated_at: dto.updatedAt ?? new Date().toISOString(),
+    contact_person: dto.contactPerson,
+    phone: dto.phone,
+    is_active: dto.isActive,
+    organization_id: dto.organizationId,
+    created_at: dto.createdAt,
+    updated_at: dto.updatedAt ?? dto.createdAt,
   };
 }
 
@@ -181,6 +185,30 @@ export function mapStockMovementDto(dto: StockMovementDto): StockMovement {
     notes: dto.notes,
     performed_by: dto.performedBy,
     created_at: dto.createdAt,
+  };
+}
+
+export function mapUserSummaryDto(dto: UserSummaryDto): UserSummary {
+  return {
+    id: dto.id,
+    email: dto.email,
+    first_name: dto.firstName,
+    last_name: dto.lastName,
+    roles: dto.roles ?? [],
+    warehouse_ids: dto.warehouseIds ?? [],
+    is_active: dto.isActive,
+    last_login_at: dto.lastLoginAt ?? null,
+    created_at: dto.createdAt,
+  };
+}
+
+export function mapAssetLabelDto(dto: AssetLabelDto): AssetLabel {
+  return {
+    asset_code: dto.assetCode,
+    qr_payload: dto.qrPayload,
+    barcode_payload: dto.barcodePayload,
+    qr_image_url: dto.qrImageUrl,
+    barcode_image_url: dto.barcodeImageUrl,
   };
 }
 
