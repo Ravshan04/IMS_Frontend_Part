@@ -73,22 +73,24 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
       barcode: formData.barcode || '',
       unit: formData.unit || 'Piece',
       price: formData.price,
-      cost: 0, // Not used in organizational context but required by API
+      cost: 0,
+      reorder_point: 0,
+      reorder_quantity: 0,
+      weight: 0,
+      length: 0,
+      width: 0,
+      height: 0,
+      tags: [],
+      images: [],
     };
 
     if (mode === 'create') {
       await createProduct.mutateAsync(payload);
     } else if (product) {
-      // Corrected the parameters to match useUpdateProduct implementation
       await updateProduct.mutateAsync({
         id: product.id,
-        name: payload.name,
-        description: payload.description,
-        categoryId: payload.category_id,
-        price: payload.price,
-        barcode: payload.barcode,
-        unit: payload.unit,
-      } as any);
+        ...payload,
+      });
     }
 
     onOpenChange(false);
