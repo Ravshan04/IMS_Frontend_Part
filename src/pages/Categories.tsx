@@ -150,7 +150,9 @@ export default function Categories() {
                       </div>
                       <div>
                         <p className="text-lg font-bold text-foreground">
-                          ${(Number(category.total_value) / 1000).toFixed(0)}k
+                          {Number(category.total_value) >= 1000 
+                            ? `$${(Number(category.total_value) / 1000).toFixed(1)}k`
+                            : `$${Number(category.total_value).toLocaleString()}`}
                         </p>
                         <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">Total Value</p>
                       </div>

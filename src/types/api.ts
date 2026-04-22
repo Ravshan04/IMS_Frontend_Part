@@ -3,6 +3,8 @@ export interface CategoryDto {
   name: string;
   description: string;
   parentId?: string | null;
+  productCount: number;
+  totalValue: number;
   createdAt: string;
   updatedAt?: string | null;
 }

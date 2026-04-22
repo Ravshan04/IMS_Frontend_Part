@@ -160,14 +160,19 @@ export default function WarehouseFormModal({ open, onOpenChange, warehouse, mode
                   <Input
                     type="tel"
                     placeholder="90 123 45 67"
-                    maxLength={14}
-                    // Agar faqat +998 bo'lsa yoki bo'sh bo'lsa, hech nima ko'rsatmaymiz (placeholder chiqadi)
-                    value={formData.phone.startsWith('+998') ? formData.phone.slice(4) : formData.phone}
+                    maxLength={12}
+                    value={(() => {
+                      // +998 dan keyingi raqamlarni olamiz va formatlashtiramiz: XX XXX XX XX
+                      const raw = formData.phone.startsWith('+998') ? formData.phone.slice(4) : formData.phone;
+                      const digits = raw.replace(/\D/g, '');
+                      if (!digits) return '';
+                      const parts = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)];
+                      return parts.filter(Boolean).join(' ');
+                    })()}
                     onChange={(e) => {
-                      // Faqat raqam va probellarni qoldiramiz
-                      const val = e.target.value.replace(/[^\d\s]/g, '');
-                      // Agar umuman qiymat yozilmagan bo'lsa, telefonni bo'sh qoldiramiz
-                      setFormData({ ...formData, phone: val.trim() ? '+998' + val : '' });
+                      // Faqat raqamlarni qoldiramiz, max 9 ta
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+                      setFormData({ ...formData, phone: digits ? '+998' + digits : '' });
                       if (errors.phone) setErrors({ ...errors, phone: undefined });
                     }}
                     className={`bg-secondary/50 font-bold tabular-nums pl-[3.5rem] ${errors.phone ? 'border-destructive focus-visible:ring-destructive' : 'border-border'}`}

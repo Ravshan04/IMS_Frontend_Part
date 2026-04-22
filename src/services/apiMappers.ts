@@ -83,8 +83,8 @@ export function mapCategoryDto(dto: CategoryDto): Category {
     name: dto.name,
     description: dto.description ?? null,
     parent_id: dto.parentId ?? null,
-    product_count: 0,
-    total_value: 0,
+    product_count: dto.productCount ?? 0,
+    total_value: dto.totalValue ?? 0,
     created_at: dto.createdAt ?? new Date().toISOString(),
     updated_at: dto.updatedAt ?? new Date().toISOString(),
   };
