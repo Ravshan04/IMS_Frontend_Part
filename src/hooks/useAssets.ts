@@ -10,28 +10,29 @@ export function useAssets(filters?: {
   warehouseId?: string;
   status?: string;
 }) {
-  return useQuery({
-    queryKey: ['assets', filters],
+  const query = useQuery({
+    queryKey: ['assets', 'list'],
     queryFn: async () => {
-      try {
-        let assets = (await apiService.get<AssetDto[]>('/assets')).map(mapAssetDto);
-        
-        if (filters?.productId) assets = assets.filter(a => a.product_id === filters.productId);
-        if (filters?.warehouseId) assets = assets.filter(a => a.warehouse_id === filters.warehouseId);
-        if (filters?.status) assets = assets.filter(a => a.status === filters.status);
-        
-        return assets;
-      } catch (error) {
-        console.error('Failed to fetch assets:', error);
-        throw error;
-      }
+      const assets = (await apiService.get<AssetDto[]>('/assets')).map(mapAssetDto);
+      return assets;
     },
   });
+
+  const filtered = (() => {
+    if (!query.data) return query.data;
+    let result = query.data;
+    if (filters?.productId) result = result.filter(a => a.product_id === filters.productId);
+    if (filters?.warehouseId) result = result.filter(a => a.warehouse_id === filters.warehouseId);
+    if (filters?.status) result = result.filter(a => a.status === filters.status);
+    return result;
+  })();
+
+  return { ...query, data: filtered };
 }
 
 export function useAsset(assetCode: string | undefined) {
   return useQuery({
-    queryKey: ['assets', assetCode],
+    queryKey: ['asset', assetCode],
     queryFn: async () => {
       const data = await apiService.get<AssetDto>(`/assets/${assetCode}`);
       return mapAssetDto(data);

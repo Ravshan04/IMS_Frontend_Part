@@ -175,51 +175,48 @@ export default function DataTable<T extends object>({
 
       {/* Pagination */}
       {sortedData.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2 px-2">
-          <p className="text-sm text-muted-foreground">
-            Jami <span className="font-medium text-foreground">{sortedData.length}</span> ta yozuvdan{' '}
-            <span className="font-medium text-foreground">{(currentPage - 1) * pageSize + 1}</span> -{' '}
-            <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, sortedData.length)}</span> ko'rsatilmoqda
-          </p>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end mt-2 px-2">
+          <div className="inline-flex items-center gap-1 bg-secondary/40 backdrop-blur-sm p-1 rounded-full border border-border/50 shadow-sm">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
-              className="border-border hover:bg-secondary h-8 w-8"
+              className="h-8 w-8 rounded-full hover:bg-background disabled:opacity-30"
             >
-              <ChevronsLeft className="w-4 h-4" />
+              <ChevronsLeft className="w-3.5 h-3.5" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="border-border hover:bg-secondary h-8 w-8"
+              className="h-8 w-8 rounded-full hover:bg-background disabled:opacity-30"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
-            <div className="flex items-center justify-center min-w-[100px] text-sm font-medium">
-              Sahifa: {currentPage} / {totalPages}
+            <div className="flex items-center justify-center px-4 text-xs font-bold tracking-wide tabular-nums">
+              <span className="text-primary">{currentPage}</span>
+              <span className="text-muted-foreground mx-1.5">/</span>
+              <span className="text-muted-foreground">{totalPages}</span>
             </div>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="border-border hover:bg-secondary h-8 w-8"
+              className="h-8 w-8 rounded-full hover:bg-background disabled:opacity-30"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3.5 h-3.5" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
-              className="border-border hover:bg-secondary h-8 w-8"
+              className="h-8 w-8 rounded-full hover:bg-background disabled:opacity-30"
             >
-              <ChevronsRight className="w-4 h-4" />
+              <ChevronsRight className="w-3.5 h-3.5" />
             </Button>
           </div>
         </div>

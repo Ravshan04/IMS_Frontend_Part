@@ -146,7 +146,7 @@ export default function Inventory() {
             <DataTable
               data={filteredData}
               columns={columns}
-              searchKeys={[]} // Using custom search
+              searchable={false}
               emptyMessage="No stock records found for current filters."
             />
           )}

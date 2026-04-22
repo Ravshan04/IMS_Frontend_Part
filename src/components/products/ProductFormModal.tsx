@@ -174,8 +174,11 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
                   type="number"
                   min="0"
                   step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                  value={formData.price === 0 ? '' : formData.price}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, price: v === '' ? 0 : parseFloat(v) || 0 });
+                  }}
                   className="bg-secondary/50 border-border font-bold tabular-nums"
                 />
               </div>
