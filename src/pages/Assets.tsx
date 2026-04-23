@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAssets } from '@/hooks/useAssets';
 import { useProducts } from '@/hooks/useProducts';
 import { useWarehouses } from '@/hooks/useWarehouses';
+import { useCategories } from '@/hooks/useCategories';
 import { AssetItem } from '@/types/database';
 import { useLanguage } from '@/contexts/LanguageContext';
 import RegisterAssetModal from '@/components/assets/RegisterAssetModal';
 import AssetDetailsModal from '@/components/assets/AssetDetailsModal';
-import { User, MapPin, History as HistoryIcon, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
+import { User, MapPin, History as HistoryIcon, ShieldCheck as ShieldCheckIcon, FolderTree } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function Assets() {
@@ -22,14 +23,15 @@ export default function Assets() {
   const [selectedAsset, setSelectedAsset] = useState<AssetItem | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [filters, setFilters] = useState({
-    productId: '',
     warehouseId: '',
+    categoryId: '',
     status: '',
   });
 
-  const { data: assets, isLoading } = useAssets(filters);
   const { data: products } = useProducts();
+  const { data: assets, isLoading } = useAssets(filters);
   const { data: warehouses } = useWarehouses();
+  const { data: categories } = useCategories();
 
   const productMap = useMemo(() => new Map((products || []).map(p => [p.id, p])), [products]);
   const warehouseMap = useMemo(() => new Map((warehouses || []).map(w => [w.id, w])), [warehouses]);
@@ -134,16 +136,16 @@ export default function Assets() {
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-6 animate-fade-in">
           <Select
-            value={filters.productId}
-            onValueChange={(value) => setFilters(f => ({ ...f, productId: value === 'all' ? '' : value }))}
+            value={filters.categoryId}
+            onValueChange={(value) => setFilters(f => ({ ...f, categoryId: value === 'all' ? '' : value }))}
           >
             <SelectTrigger className="w-[180px] bg-secondary/50 border-border font-medium">
-              <SelectValue placeholder="All Products" />
+              <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Products</SelectItem>
-              {products?.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories?.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>

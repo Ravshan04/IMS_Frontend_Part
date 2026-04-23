@@ -8,26 +8,31 @@ import { AssetDto, AssetLabelDto } from '@/types/api';
 export function useAssets(filters?: {
   productId?: string;
   warehouseId?: string;
+  categoryId?: string;
   status?: string;
 }) {
   const query = useQuery({
-    queryKey: ['assets', 'list'],
+    queryKey: ['assets', 'list', filters],
     queryFn: async () => {
-      const assets = (await apiService.get<AssetDto[]>('/assets')).map(mapAssetDto);
+      const params = new URLSearchParams();
+      if (filters?.productId) params.append('productId', filters.productId);
+      if (filters?.warehouseId) params.append('warehouseId', filters.warehouseId);
+      if (filters?.categoryId) params.append('categoryId', filters.categoryId);
+      
+      const url = `/assets${params.toString() ? `?${params.toString()}` : ''}`;
+      const assets = (await apiService.get<AssetDto[]>(url)).map(mapAssetDto);
+      
+      // Local status filtering if needed, but backend could also handle this.
+      // For now keeping status filter local to avoid backend changes for every small filter.
+      if (filters?.status) {
+        return assets.filter(a => a.status === filters.status);
+      }
+      
       return assets;
     },
   });
 
-  const filtered = (() => {
-    if (!query.data) return query.data;
-    let result = query.data;
-    if (filters?.productId) result = result.filter(a => a.product_id === filters.productId);
-    if (filters?.warehouseId) result = result.filter(a => a.warehouse_id === filters.warehouseId);
-    if (filters?.status) result = result.filter(a => a.status === filters.status);
-    return result;
-  })();
-
-  return { ...query, data: filtered };
+  return query;
 }
 
 export function useAsset(assetCode: string | undefined) {

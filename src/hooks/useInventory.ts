@@ -28,22 +28,22 @@ export function useInventory(warehouseId?: string) {
   });
 }
 
-export function useStockMovements(filters?: { productId?: string; warehouseId?: string }) {
+export function useStockMovements(filters?: { 
+  productId?: string; 
+  warehouseId?: string;
+  categoryId?: string;
+}) {
   return useQuery({
     queryKey: ['stock-movements', filters],
     queryFn: async () => {
-      try {
-        const params = new URLSearchParams();
-        if (filters?.productId) params.append('productId', filters.productId);
-        if (filters?.warehouseId) params.append('warehouseId', filters.warehouseId);
-        
-        const url = `/inventory/movements${params.toString() ? `?${params.toString()}` : ''}`;
-        const data = await apiService.get<StockMovementDto[]>(url);
-        return data.map(mapStockMovementDto);
-      } catch (error) {
-        console.error('Failed to fetch movements:', error);
-        throw error;
-      }
+      const params = new URLSearchParams();
+      if (filters?.productId && filters.productId !== 'all') params.append('productId', filters.productId);
+      if (filters?.warehouseId && filters.warehouseId !== 'all') params.append('warehouseId', filters.warehouseId);
+      if (filters?.categoryId && filters.categoryId !== 'all') params.append('categoryId', filters.categoryId);
+      
+      const url = `/inventory/movements${params.toString() ? `?${params.toString()}` : ''}`;
+      const data = await apiService.get<StockMovementDto[]>(url);
+      return data.map(mapStockMovementDto);
     },
   });
 }

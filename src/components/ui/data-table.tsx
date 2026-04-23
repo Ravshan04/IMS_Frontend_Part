@@ -27,6 +27,7 @@ interface DataTableProps<T> {
   pageSize?: number;
   emptyMessage?: string;
   onRowClick?: (item: T) => void;
+  className?: string;
 }
 
 export default function DataTable<T extends object>({
@@ -37,6 +38,7 @@ export default function DataTable<T extends object>({
   pageSize = 10,
   emptyMessage = 'No data found',
   onRowClick,
+  className,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -100,7 +102,7 @@ export default function DataTable<T extends object>({
   };
 
   return (
-    <div className="space-y-4">
+    <div className={cn("space-y-4", className)}>
       {searchable && (
         <div className="relative max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
