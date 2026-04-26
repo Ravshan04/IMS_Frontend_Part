@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, DoorClosed } from 'lucide-react';
 import { useCreateWarehouse, useUpdateWarehouse } from '@/hooks/useWarehouses';
 import { Warehouse } from '@/types/database';
+import { cn } from '@/lib/utils';
 
 interface WarehouseFormModalProps {
   open: boolean;
@@ -94,101 +95,100 @@ export default function WarehouseFormModal({ open, onOpenChange, warehouse, mode
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl bg-card border-border border-2 rounded-3xl p-0 overflow-hidden shadow-2xl">
-        <div className="bg-primary/5 p-6 border-b border-border/50">
-            <DialogHeader>
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <DoorClosed className="w-6 h-6 text-primary" />
-                    </div>
-                </div>
-                <DialogTitle className="text-2xl font-black uppercase tracking-tight text-foreground">
-                    {mode === 'create' ? 'Register Facility / Room' : 'Edit Facility Details'}
-                </DialogTitle>
-                <p className="text-xs text-muted-foreground font-medium italic">Define rooms, offices, or buildings where internal assets can be located.</p>
-            </DialogHeader>
-        </div>
+      <DialogContent className="max-w-xl bg-card border-border rounded-xl p-0 overflow-hidden shadow-lg">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <DoorClosed className="w-5 h-5 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                {mode === 'create' ? 'New facility' : 'Edit facility'}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Define a room, office, or building where assets can be located.
+              </p>
+            </div>
+          </div>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="space-y-2">
-            <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Facility Name / Room Number *</Label>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">
+              Facility name <span className="text-destructive">*</span>
+            </Label>
             <Input
               placeholder="e.g. IT Department, Server Room, Room 402"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
-              className="bg-secondary/50 border-border font-bold"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Building / Location</Label>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">Building / location</Label>
             <Input
               placeholder="e.g. Main Building, 4th Floor"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              className="bg-secondary/50 border-border font-bold"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Internal Usage Description</Label>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">Description</Label>
             <Textarea
               placeholder="e.g. Primary storage for networking equipment"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="bg-secondary/50 border-border min-h-[80px]"
+              className="min-h-[80px] resize-none"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Responsible Person</Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Responsible person</Label>
+              <Input
+                placeholder="e.g. John Doe"
+                value={formData.contact_person}
+                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Contact phone</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm tabular-nums text-muted-foreground select-none pointer-events-none">
+                  +998
+                </span>
                 <Input
-                  placeholder="e.g. John Doe"
-                  value={formData.contact_person}
-                  onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
-                  className="bg-secondary/50 border-border font-bold"
+                  type="tel"
+                  placeholder="90 123 45 67"
+                  maxLength={12}
+                  value={(() => {
+                    const raw = formData.phone.startsWith('+998') ? formData.phone.slice(4) : formData.phone;
+                    const digits = raw.replace(/\D/g, '');
+                    if (!digits) return '';
+                    const parts = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)];
+                    return parts.filter(Boolean).join(' ');
+                  })()}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    setFormData({ ...formData, phone: digits ? '+998' + digits : '' });
+                    if (errors.phone) setErrors({ ...errors, phone: undefined });
+                  }}
+                  className={cn('pl-14 tabular-nums', errors.phone && 'border-destructive focus-visible:ring-destructive')}
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Contact Phone</Label>
-                <div className="relative flex items-center">
-                  <span className="absolute left-[14px] text-sm tabular-nums font-bold text-foreground select-none pointer-events-none">
-                    +998
-                  </span>
-                  <Input
-                    type="tel"
-                    placeholder="90 123 45 67"
-                    maxLength={12}
-                    value={(() => {
-                      // +998 dan keyingi raqamlarni olamiz va formatlashtiramiz: XX XXX XX XX
-                      const raw = formData.phone.startsWith('+998') ? formData.phone.slice(4) : formData.phone;
-                      const digits = raw.replace(/\D/g, '');
-                      if (!digits) return '';
-                      const parts = [digits.slice(0, 2), digits.slice(2, 5), digits.slice(5, 7), digits.slice(7, 9)];
-                      return parts.filter(Boolean).join(' ');
-                    })()}
-                    onChange={(e) => {
-                      // Faqat raqamlarni qoldiramiz, max 9 ta
-                      const digits = e.target.value.replace(/\D/g, '').slice(0, 9);
-                      setFormData({ ...formData, phone: digits ? '+998' + digits : '' });
-                      if (errors.phone) setErrors({ ...errors, phone: undefined });
-                    }}
-                    className={`bg-secondary/50 font-bold tabular-nums pl-[3.5rem] ${errors.phone ? 'border-destructive focus-visible:ring-destructive' : 'border-border'}`}
-                  />
-                </div>
-                {errors.phone && <p className="text-xs text-destructive font-semibold mt-1">{errors.phone}</p>}
-              </div>
+              {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-full px-6 font-bold">
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90 rounded-full px-12 font-black shadow-xl shadow-primary/20 h-12" disabled={isLoading}>
-              {isLoading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-              {mode === 'create' ? 'Register Facility' : 'Save Changes'}
+            <Button type="submit" disabled={isLoading} className="min-w-32">
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {mode === 'create' ? 'Create' : 'Save changes'}
             </Button>
           </div>
         </form>

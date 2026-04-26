@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Download, Loader2, Package, Search } from 'lucide-react';
+import { Plus, Download, Loader2 } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import DataTable from '@/components/ui/data-table';
@@ -60,90 +60,90 @@ export default function Products() {
   const columns = useMemo(() => [
     {
       key: 'sku',
-      header: 'Catalog ID',
+      header: 'SKU',
       sortable: true,
       render: (item: Product) => (
-        <span className="font-mono text-xs text-primary font-black tracking-tight">{item.sku}</span>
+        <span className="font-mono text-sm font-medium text-foreground">{item.sku}</span>
       ),
     },
     {
       key: 'name',
-      header: 'Equipment Type',
+      header: 'Name',
       sortable: true,
       render: (item: Product) => (
-        <div className="max-w-[250px]">
-          <p className="font-bold text-foreground truncate">{item.name}</p>
-          <p className="text-[10px] text-muted-foreground truncate uppercase font-black tracking-tighter">
-            {item.description || 'No specialized description'}
+        <div className="max-w-[280px]">
+          <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {item.description || 'No description'}
           </p>
         </div>
       ),
     },
     {
       key: 'category',
-      header: 'Classification',
+      header: 'Category',
       render: (item: Product) => (
-        <Badge variant="outline" className="bg-secondary/30 border-border/50 font-black text-[10px] uppercase tracking-widest border-2">
+        <Badge variant="secondary" className="font-medium">
           {getCategoryName(item.category_id)}
         </Badge>
       ),
     },
     {
       key: 'price',
-      header: 'Value / Price',
+      header: 'Unit value',
       sortable: true,
       render: (item: Product) => (
-        <span className="font-bold text-foreground tabular-nums">${item.price.toLocaleString()}</span>
+        <span className="text-sm font-semibold text-foreground tabular-nums">
+          ${item.price.toLocaleString()}
+        </span>
       ),
     },
   ], [getCategoryName]);
 
   return (
     <MainLayout>
-      <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
         <PageHeader
-          title="Equipment Catalog"
-          description="Manage the list of allowed equipment types and furniture for the organization."
+          title="Equipment catalog"
+          description="Manage the equipment types and furniture available across the organization."
         >
-          <div className="flex gap-2">
-            <Button variant="outline" className="border-border hidden sm:flex font-bold rounded-full px-5" onClick={handleExport} disabled={!products?.length}>
-                <Download className="w-4 h-4 mr-2" />
-                Export Catalog
+          <Button variant="outline" className="hidden sm:flex" onClick={handleExport} disabled={!products?.length}>
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          {canManageCatalog && (
+            <Button onClick={() => {
+              setEditingProduct(undefined);
+              setCreateModalOpen(true);
+            }}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add item
             </Button>
-            {canManageCatalog && (
-                <Button className="bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 rounded-full px-6 font-black tracking-tight" onClick={() => {
-                    setEditingProduct(undefined);
-                    setCreateModalOpen(true);
-                }}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Item Type
-                </Button>
-            )}
-          </div>
+          )}
         </PageHeader>
 
         <div className="flex flex-wrap items-center gap-3">
-            <Select
-                value={filters.categoryId}
-                onValueChange={(value) => setFilters(f => ({ ...f, categoryId: value === 'all' ? '' : value }))}
-            >
-                <SelectTrigger className="w-[200px] bg-secondary/50 border-border font-bold">
-                    <SelectValue placeholder="All Classifications" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border border-2">
-                    <SelectItem value="all">All Classifications</SelectItem>
-                    {categories?.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+          <Select
+            value={filters.categoryId || 'all'}
+            onValueChange={(value) => setFilters((f) => ({ ...f, categoryId: value === 'all' ? '' : value }))}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categories?.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="animate-slide-up glass rounded-3xl border-border/30 overflow-hidden shadow-2xl">
+        <div className="animate-slide-up">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-32 gap-6 bg-card/50">
-               <Loader2 className="w-12 h-12 animate-spin text-primary opacity-50" />
-               <p className="text-sm font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing catalog data...</p>
+            <div className="flex flex-col items-center justify-center py-24 gap-3 bg-card border border-border rounded-xl">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading catalog…</p>
             </div>
           ) : (
             <DataTable

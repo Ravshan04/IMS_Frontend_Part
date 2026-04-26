@@ -11,11 +11,11 @@ interface PageHeaderProps {
 const PageHeader = ({ title, description, children, className }: PageHeaderProps) => {
     return (
         <div className={cn("flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 animate-fade-in", className)}>
-            <div>
-                <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1">{title}</h1>
-                {description && <p className="text-muted-foreground text-sm sm:text-base">{description}</p>}
+            <div className="space-y-1">
+                <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight">{title}</h1>
+                {description && <p className="text-sm text-muted-foreground">{description}</p>}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
                 {children}
             </div>
         </div>
