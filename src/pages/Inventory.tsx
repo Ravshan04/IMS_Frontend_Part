@@ -1,10 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Package, Search, Download, Loader2, Warehouse as WarehouseIcon, AlertTriangle } from 'lucide-react';
+import { Search, Download, Loader2, Warehouse as WarehouseIcon, AlertTriangle } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import DataTable from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useInventory } from '@/hooks/useInventory';
 import { useProducts } from '@/hooks/useProducts';
@@ -44,8 +43,8 @@ export default function Inventory() {
         const product = productMap.get(item.product_id);
         return (
           <div className="flex flex-col">
-            <span className="font-bold text-foreground">{product?.name || 'Unknown'}</span>
-            <span className="text-xs font-mono text-muted-foreground">{product?.sku || '-'}</span>
+            <span className="text-sm font-medium text-foreground">{product?.name || 'Unknown'}</span>
+            <span className="text-xs font-mono text-muted-foreground">{product?.sku || '—'}</span>
           </div>
         );
       },
@@ -54,18 +53,18 @@ export default function Inventory() {
       key: 'warehouse',
       header: 'Warehouse',
       render: (item: InventoryStatus) => (
-        <div className="flex items-center gap-2">
-           <WarehouseIcon className="w-4 h-4 text-muted-foreground" />
-           <span className="text-sm font-medium">{warehouseMap.get(item.warehouse_id)?.name || 'Default'}</span>
+        <div className="flex items-center gap-2 text-sm">
+          <WarehouseIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span>{warehouseMap.get(item.warehouse_id)?.name || '—'}</span>
         </div>
       ),
     },
     {
       key: 'quantity',
-      header: 'On Hand',
+      header: 'On hand',
       sortable: true,
       render: (item: InventoryStatus) => (
-        <span className="font-black text-foreground tabular-nums">{item.quantity}</span>
+        <span className="text-sm font-semibold text-foreground tabular-nums">{item.quantity}</span>
       ),
     },
     {
@@ -77,19 +76,19 @@ export default function Inventory() {
         const isLow = product?.reorder_point ? item.available_quantity <= product.reorder_point : item.available_quantity < 10;
         return (
           <div className="flex items-center gap-2">
-            <span className={cn("font-black tabular-nums", isLow ? "text-destructive" : "text-success")}>
+            <span className={cn('text-sm font-semibold tabular-nums', isLow ? 'text-destructive' : 'text-success')}>
               {item.available_quantity}
             </span>
-            {isLow && <AlertTriangle className="w-3 h-3 text-destructive animate-pulse" />}
+            {isLow && <AlertTriangle className="w-3.5 h-3.5 text-destructive" />}
           </div>
         );
       },
     },
     {
       key: 'last_update',
-      header: 'Last Sync',
+      header: 'Last update',
       render: (item: InventoryStatus) => (
-        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {new Date(item.last_stock_update).toLocaleString()}
         </span>
       ),
@@ -98,56 +97,56 @@ export default function Inventory() {
 
   return (
     <MainLayout>
-      <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
         <PageHeader
-          title="Inventory Levels"
-          description="Real-time stock quantities across all global fulfilment centers."
+          title="Inventory levels"
+          description="Real-time stock quantities across all warehouses."
         >
-          <Button variant="outline" className="rounded-full px-6 gap-2 border-2">
-            <Download className="w-4 h-4" />
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
             Export CSV
           </Button>
         </PageHeader>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between glass p-4 rounded-3xl border-border/30 shadow-xl">
-           <div className="relative w-full sm:w-96">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input 
-                    placeholder="Search by SKU or Name..." 
-                    className="pl-10 bg-secondary/50 border-none rounded-2xl h-11"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-           </div>
-           
-           <div className="flex items-center gap-4 w-full sm:w-auto">
-               <span className="text-xs font-black uppercase text-muted-foreground tracking-widest whitespace-nowrap">Facility:</span>
-               <Select value={warehouseId} onValueChange={setWarehouseId}>
-                    <SelectTrigger className="w-full sm:w-[220px] bg-primary/5 border-primary/20 rounded-2xl h-11 font-bold">
-                        <SelectValue placeholder="All Warehouses" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl border-2">
-                        <SelectItem value="all">Global (All Warehouses)</SelectItem>
-                        {warehouses?.map(w => (
-                            <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-               </Select>
-           </div>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between bg-card border border-border rounded-xl p-4">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or SKU…"
+              className="pl-9 h-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">Warehouse:</span>
+            <Select value={warehouseId} onValueChange={setWarehouseId}>
+              <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="All warehouses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All warehouses</SelectItem>
+                {warehouses?.map((w) => (
+                  <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="animate-slide-up glass rounded-3xl border-border/30 overflow-hidden shadow-2xl">
+        <div className="animate-slide-up">
           {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-32 gap-6">
-              <Loader2 className="w-12 h-12 animate-spin text-primary opacity-50" />
-              <p className="text-sm font-black uppercase tracking-widest text-muted-foreground animate-pulse">Scanning facility grids...</p>
+            <div className="flex flex-col items-center justify-center py-24 gap-3 bg-card border border-border rounded-xl">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading inventory…</p>
             </div>
           ) : (
             <DataTable
               data={filteredData}
               columns={columns}
               searchable={false}
-              emptyMessage="No stock records found for current filters."
+              emptyMessage="No stock records match the current filters."
             />
           )}
         </div>

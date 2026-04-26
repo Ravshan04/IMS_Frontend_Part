@@ -100,97 +100,101 @@ export default function ProductFormModal({ open, onOpenChange, product, mode }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl bg-card border-border border-2 rounded-3xl p-0 overflow-hidden shadow-2xl">
-        <div className="bg-primary/5 p-6 border-b border-border/50">
-            <DialogHeader>
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Package className="w-6 h-6 text-primary" />
-                    </div>
-                </div>
-                <DialogTitle className="text-2xl font-black uppercase tracking-tight text-foreground">
-                    {mode === 'create' ? 'Define Equipment Type' : 'Edit Equipment Specs'}
-                </DialogTitle>
-                <p className="text-xs text-muted-foreground font-medium italic">Define the standard specifications for this type of organizational asset.</p>
-            </DialogHeader>
-        </div>
+      <DialogContent className="max-w-xl bg-card border-border rounded-xl p-0 overflow-hidden shadow-lg">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-border space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Package className="w-5 h-5 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <DialogTitle className="text-lg font-semibold text-foreground">
+                {mode === 'create' ? 'New equipment type' : 'Edit equipment type'}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Define the standard specifications for this asset type.
+              </p>
+            </div>
+          </div>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Catalog ID (SKU)</Label>
-                <Input
-                  placeholder="EQ-001"
-                  value={formData.sku}
-                  onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                  disabled={mode === 'edit'}
-                  className="bg-secondary/50 border-border font-mono font-bold"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Short Name *</Label>
-                <Input
-                  placeholder="e.g. Dell Latitude 5420"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="bg-secondary/50 border-border font-bold"
-                />
-              </div>
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">SKU</Label>
+              <Input
+                placeholder="EQ-001"
+                value={formData.sku}
+                onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                disabled={mode === 'edit'}
+                className="font-mono"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">
+                Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                placeholder="e.g. Dell Latitude 5420"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Detailed Specifications</Label>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-foreground">Description</Label>
             <Textarea
-              placeholder="Processor, RAM, Color, etc."
+              placeholder="Processor, RAM, color, etc."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="bg-secondary/50 border-border min-h-[100px]"
+              className="min-h-[96px] resize-none"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Classification</Label>
-                <Select
-                  value={formData.category_id}
-                  onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                >
-                  <SelectTrigger className="bg-secondary/50 border-border font-bold text-xs">
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border-border border-2">
-                    {categories?.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id} className="text-xs font-bold">
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Estimated Unit Value ($)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price === 0 ? '' : formData.price}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setFormData({ ...formData, price: v === '' ? 0 : parseFloat(v) || 0 });
-                  }}
-                  className="bg-secondary/50 border-border font-bold tabular-nums"
-                />
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Category</Label>
+              <Select
+                value={formData.category_id}
+                onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories?.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-foreground">Unit value ($)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.price === 0 ? '' : formData.price}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setFormData({ ...formData, price: v === '' ? 0 : parseFloat(v) || 0 });
+                }}
+                className="tabular-nums"
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-6 border-t border-border/50">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} className="rounded-full px-6 font-bold">
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" className="bg-primary hover:bg-primary/90 rounded-full px-12 font-black shadow-xl shadow-primary/20 h-12" disabled={isLoading}>
-              {isLoading && <Loader2 className="w-5 h-5 mr-2 animate-spin" />}
-              {mode === 'create' ? 'Add to Catalog' : 'Update Specifications'}
+            <Button type="submit" disabled={isLoading} className="min-w-32">
+              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {mode === 'create' ? 'Create' : 'Save changes'}
             </Button>
           </div>
         </form>
