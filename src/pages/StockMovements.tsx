@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { History, Loader2, ArrowUpRight, ArrowDownLeft, RefreshCcw, FileEdit, Undo2, MapPin, User, ShieldCheck } from 'lucide-react';
+import { History, Loader2, MapPin } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import DataTable from '@/components/ui/data-table';
@@ -12,6 +12,7 @@ import { useCategories } from '@/hooks/useCategories';
 import { useUsers } from '@/hooks/useUsers';
 import { StockMovement } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { getMovementTypeConfig, isNegativeMovement } from '@/constants/stockMovements';
 
 export default function StockMovements() {
   const [filters, setFilters] = useState({
@@ -32,27 +33,6 @@ export default function StockMovements() {
   const productMap = useMemo(() => new Map((products || []).map((p) => [p.id, p])), [products]);
   const warehouseMap = useMemo(() => new Map((warehouses || []).map((w) => [w.id, w])), [warehouses]);
   const userMap = useMemo(() => new Map((users || []).map((u) => [u.id, u])), [users]);
-
-  const getMovementConfig = (type: string) => {
-    switch (type) {
-      case 'IN':
-        return { label: 'Inbound', icon: ArrowDownLeft, color: 'text-success', bg: 'bg-success/10' };
-      case 'OUT':
-        return { label: 'Outbound', icon: ArrowUpRight, color: 'text-destructive', bg: 'bg-destructive/10' };
-      case 'TRANSFER':
-        return { label: 'Transfer', icon: RefreshCcw, color: 'text-primary', bg: 'bg-primary/10' };
-      case 'ADJUSTMENT':
-        return { label: 'Adjustment', icon: FileEdit, color: 'text-warning', bg: 'bg-warning/10' };
-      case 'RETURN':
-        return { label: 'Return', icon: Undo2, color: 'text-muted-foreground', bg: 'bg-muted' };
-      case 'ASSIGNMENT':
-        return { label: 'Assignment', icon: User, color: 'text-indigo-500', bg: 'bg-indigo-500/10' };
-      case 'REPAIR':
-        return { label: 'Repair', icon: ShieldCheck, color: 'text-orange-500', bg: 'bg-orange-500/10' };
-      default:
-        return { label: type, icon: History, color: 'text-muted-foreground', bg: 'bg-muted' };
-    }
-  };
 
   const columns = useMemo(
     () => [
@@ -92,7 +72,7 @@ export default function StockMovements() {
         key: 'type',
         header: 'Type',
         render: (item: StockMovement) => {
-          const config = getMovementConfig(item.movement_type);
+          const config = getMovementTypeConfig(item.movement_type);
           const Icon = config.icon;
           return (
             <Badge variant="outline" className={cn('gap-1.5 border-transparent font-medium', config.bg, config.color)}>
@@ -148,9 +128,7 @@ export default function StockMovements() {
         key: 'quantity',
         header: 'Qty',
         render: (item: StockMovement) => {
-          const isNegative =
-            ['OUT', 'TRANSFER'].includes(item.movement_type) ||
-            (item.movement_type === 'ADJUSTMENT' && item.quantity < 0);
+          const isNegative = isNegativeMovement(item.movement_type, item.quantity);
           const displayQty = Math.abs(item.quantity);
 
           return (

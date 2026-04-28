@@ -1,0 +1,29 @@
+# Dependencies — installed inside the build stage, never copy host node_modules
+node_modules/
+
+# Build output
+dist/
+build/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Git
+.git/
+.github/
+
+# Local env — secrets do not belong in images
+.env
+.env.local
+.env.*.local
+
+# Lockfile management — keep both (npm + bun) lockfiles available so the
+# Dockerfile can choose whichever exists.
+# (Don't ignore *.lockb / package-lock.json here.)
+
+# Misc
+*.log
+npm-debug.log*
+README.md
