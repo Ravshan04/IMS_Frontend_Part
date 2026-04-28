@@ -24,6 +24,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Badge } from '@/components/ui/badge';
 import { useUnreadNotificationsCount } from '@/hooks/useNotifications';
+import { APP_NAME } from '@/constants/common';
+import { getRoleBadgeVariant } from '@/constants/roles';
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -62,17 +64,6 @@ export default function Sidebar() {
     return 'U';
   };
 
-  const getRoleBadgeVariant = () => {
-    switch (role) {
-      case 'Owner':
-      case 'Admin':
-        return 'destructive';
-      case 'Manager':
-        return 'default';
-      default:
-        return 'secondary';
-    }
-  };
 
   return (
     <aside
@@ -88,7 +79,7 @@ export default function Sidebar() {
             <Box className="w-5 h-5 text-primary-foreground" />
           </div>
           {!collapsed && (
-            <span className="font-bold text-lg text-foreground">InvenPro</span>
+            <span className="font-bold text-lg text-foreground">{APP_NAME}</span>
           )}
         </Link>
         <button
@@ -159,7 +150,7 @@ export default function Sidebar() {
                     : profile?.email || 'User'}
                 </p>
                 {role && (
-                  <Badge variant={getRoleBadgeVariant()} className="text-xs capitalize">
+                  <Badge variant={getRoleBadgeVariant(role)} className="text-xs capitalize">
                     {role}
                   </Badge>
                 )}

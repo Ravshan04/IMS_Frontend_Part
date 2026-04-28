@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Profile, AppRole } from '@/types/database';
 import { apiService } from '@/services/apiService';
+import { DEFAULT_REGISTRATION_ORG_ID, SESSION_STORAGE_KEY } from '@/constants/common';
+import { ROLES, isAdminOrManagerRole } from '@/constants/roles';
 
 interface User {
   id: string;
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const storedSession = localStorage.getItem('ombor_session');
+      const storedSession = localStorage.getItem(SESSION_STORAGE_KEY);
       if (storedSession) {
         const sessionData = JSON.parse(storedSession) as SessionStorage;
         const userId = sessionData.userId ?? '1';
@@ -80,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           created_at: now,
           updated_at: now,
         });
-        setRole(sessionData.roles?.[0] || 'Viewer');
+        setRole(sessionData.roles?.[0] || ROLES.Viewer);
         setPermissions(sessionData.permissions || []);
       }
       setLoading(false);
@@ -103,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permissions: response.permissions
       };
 
-      localStorage.setItem('ombor_session', JSON.stringify(sessionData));
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
       setSession(sessionData);
       const userId = response.userId;
       const now = new Date().toISOString();
@@ -118,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         created_at: now,
         updated_at: now,
       });
-      setRole(response.roles?.[0] || 'Viewer');
+      setRole(response.roles?.[0] || ROLES.Viewer);
       setPermissions(response.permissions || []);
       
       return { error: null };
@@ -130,12 +132,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
-      await apiService.post<void>('/auth/register', { 
-        email, 
-        password, 
-        firstName, 
+      await apiService.post<void>('/auth/register', {
+        email,
+        password,
+        firstName,
         lastName,
-        organizationId: '00000000-0000-0000-0000-000000000001'
+        organizationId: DEFAULT_REGISTRATION_ORG_ID
       });
       return signIn(email, password);
     } catch (error: unknown) {
@@ -144,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    localStorage.removeItem('ombor_session');
+    localStorage.removeItem(SESSION_STORAGE_KEY);
     setUser(null);
     setSession(null);
     setProfile(null);
@@ -154,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = (permission: string) => permissions.includes(permission);
 
-  const isAdminOrManager = role === 'Owner' || role === 'Admin' || role === 'Manager';
+  const isAdminOrManager = isAdminOrManagerRole(role);
   
   const canManageCatalog = hasPermission('CatalogWrite');
   const canManageInventory = hasPermission('InventoryWrite');

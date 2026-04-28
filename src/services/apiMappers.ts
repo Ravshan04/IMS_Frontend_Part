@@ -24,7 +24,7 @@ import type {
   AssetLabelDto,
 } from '@/types/api';
 
-const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
+import { EMPTY_GUID } from '@/constants/common';
 
 export function normalizeNotificationType(type: string | undefined): NotificationType {
   if (!type) return 'system';
@@ -178,7 +178,7 @@ export function mapStockMovementDto(dto: StockMovementDto): StockMovement {
     id: dto.id,
     product_id: dto.productId,
     warehouse_id: dto.warehouseId,
-    movement_type: dto.movementType as any,
+    movement_type: dto.movementType as StockMovement['movement_type'],
     quantity: dto.quantity,
     reference_type: dto.referenceType,
     reference_id: dto.referenceId,
@@ -212,4 +212,5 @@ export function mapAssetLabelDto(dto: AssetLabelDto): AssetLabel {
   };
 }
 
+// EMPTY_GUID re-exported for callers that import it from this module historically.
 export { EMPTY_GUID };
