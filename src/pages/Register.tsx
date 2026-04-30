@@ -43,20 +43,15 @@ export default function Register() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="glass rounded-2xl p-8 animate-scale-in">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-              <Box className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-2xl text-foreground">InvenPro</span>
+        <div className="bg-card border border-border shadow-md rounded-lg p-8 animate-scale-in">
+          <div className="flex justify-center mb-6 overflow-hidden h-16">
+            <img src="/logo.png" alt="OmborPro" className="h-full object-contain scale-[3]" />
           </div>
-
           <h1 className="text-2xl font-bold text-foreground text-center mb-2">
             Create Account
           </h1>
           <p className="text-muted-foreground text-center mb-8">
-            Sign up to get started with InvenPro
+            Sign up to get started with OmborPro
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">

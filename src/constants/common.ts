@@ -4,7 +4,7 @@
 export const EMPTY_GUID = '00000000-0000-0000-0000-000000000000';
 
 /** Display name shown in the sidebar header. */
-export const APP_NAME = 'InvenPro';
+export const APP_NAME = 'OmborPro';
 
 /** localStorage key holding the JWT session payload. */
 export const SESSION_STORAGE_KEY = 'ombor_session';

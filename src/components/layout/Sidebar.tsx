@@ -36,7 +36,7 @@ export default function Sidebar() {
   const { data: unreadCount } = useUnreadNotificationsCount();
 
   const navigation = useMemo(() => [
-    { name: t('dashboard'), href: '/', icon: LayoutDashboard },
+    { name: t('dashboard'), href: '/dashboard', icon: LayoutDashboard },
     { name: t('products'), href: '/products', icon: Box },
     { name: t('assets'), href: '/assets', icon: ShieldCheck },
     { name: t('inventory'), href: '/inventory', icon: Package },
@@ -74,17 +74,24 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-            <Box className="w-5 h-5 text-primary-foreground" />
+        <Link to="/dashboard" className="flex items-center justify-center w-full pr-2">
+          <div className={cn(
+            "flex items-center justify-center transition-all duration-300",
+            collapsed ? "w-10 h-10" : "w-full h-12"
+          )}>
+            <img 
+              src="/logo.png" 
+              alt="OmborPro Logo" 
+              className={cn(
+                "object-contain transition-all duration-300",
+                collapsed ? "h-12 w-12 scale-[4]" : "h-16 w-full scale-[2.5]"
+              )} 
+            />
           </div>
-          {!collapsed && (
-            <span className="font-bold text-lg text-foreground">{APP_NAME}</span>
-          )}
         </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
+          className="p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors flex-shrink-0"
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -93,6 +100,23 @@ export default function Sidebar() {
           )}
         </button>
       </div>
+
+      {/* Global Search Hint */}
+      {!collapsed && (
+        <div className="px-4 py-3">
+          <button 
+            onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="w-full flex items-center justify-between px-3 py-2 text-sm text-muted-foreground bg-muted/50 border border-border rounded-md hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className="opacity-70">Search...</span>
+            </div>
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </button>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">

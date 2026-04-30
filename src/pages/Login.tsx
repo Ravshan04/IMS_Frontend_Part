@@ -9,6 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { AppRole } from '@/types/database';
 
+import { APP_NAME } from '@/constants/common';
+
+// ... other imports ...
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,7 +34,7 @@ export default function Login() {
         variant: 'destructive',
       });
     } else {
-      navigate('/');
+      navigate('/dashboard');
     }
 
     setLoading(false);
@@ -39,15 +43,11 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="glass rounded-2xl p-8 animate-scale-in">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-gradient-primary flex items-center justify-center shadow-glow">
-              <Box className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-2xl text-foreground">InvenPro</span>
-          </div>
+        <div className="bg-card border border-border shadow-md rounded-lg p-8 animate-scale-in">
 
+          <div className="flex justify-center mb-6 overflow-hidden h-16">
+            <img src="/logo.png" alt="OmborPro" className="h-full object-contain scale-[3]" />
+          </div>
           <h1 className="text-2xl font-bold text-foreground text-center mb-2">
             Welcome Back
           </h1>

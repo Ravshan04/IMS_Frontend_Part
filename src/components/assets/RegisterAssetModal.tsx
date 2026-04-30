@@ -41,6 +41,7 @@ export default function RegisterAssetModal({ open, onOpenChange }: RegisterAsset
         notes: formData.notes,
         status: 'InWarehouse',
         asset_code: '', // Backend generates this
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       onOpenChange(false);
       setFormData({
@@ -117,7 +118,7 @@ export default function RegisterAssetModal({ open, onOpenChange }: RegisterAsset
             <Label htmlFor="condition" className="text-[10px] uppercase font-black tracking-widest text-muted-foreground">Initial Condition</Label>
             <Select
               value={formData.condition}
-              onValueChange={(val: any) => setFormData(p => ({ ...p, condition: val }))}
+              onValueChange={(val: AssetCondition) => setFormData(p => ({ ...p, condition: val }))}
             >
               <SelectTrigger className="bg-secondary/50 border-border">
                 <SelectValue placeholder="Select condition" />

@@ -27,6 +27,7 @@ export default function QuickAddProductModal({ open, onOpenChange }: QuickAddPro
         cost: 0,
         unit: 'Piece',
         category_id: null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       setName('');
       onOpenChange(false);
