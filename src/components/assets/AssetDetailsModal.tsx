@@ -84,7 +84,7 @@ export default function AssetDetailsModal({ asset, open, onOpenChange, productNa
                         <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground flex items-center gap-1.5">
                             <Clipboard className="w-3 h-3" /> Operational Status
                         </Label>
-                        <Select value={formData.status} onValueChange={(val: any) => setFormData(p => ({ ...p, status: val }))}>
+                        <Select value={formData.status} onValueChange={(val: AssetStatus) => setFormData(p => ({ ...p, status: val }))}>
                             <SelectTrigger className="bg-secondary/30 border-border h-12">
                                 <SelectValue />
                             </SelectTrigger>
@@ -102,7 +102,7 @@ export default function AssetDetailsModal({ asset, open, onOpenChange, productNa
                         <Label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground flex items-center gap-1.5">
                              <AlertCircle className="w-3 h-3" /> Physical Condition
                         </Label>
-                        <Select value={formData.condition} onValueChange={(val: any) => setFormData(p => ({ ...p, condition: val }))}>
+                        <Select value={formData.condition} onValueChange={(val: AssetCondition) => setFormData(p => ({ ...p, condition: val }))}>
                             <SelectTrigger className="bg-secondary/30 border-border h-12">
                                 <SelectValue />
                             </SelectTrigger>

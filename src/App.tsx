@@ -10,8 +10,10 @@ import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
 import { SettingsProvider } from "@/contexts/SettingsContext";
 import { Toaster as SonnerToaster } from "sonner";
+import { GlobalCommandPalette } from "@/components/layout/GlobalCommandPalette";
 
 // Lazy load pages
+const Landing = lazy(() => import("./pages/Landing"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Products = lazy(() => import("./pages/Products"));
 const Assets = lazy(() => import("./pages/Assets"));
@@ -45,11 +47,14 @@ const App = () => (
               <Toaster />
               <SonnerToaster richColors position="top-right" />
               <BrowserRouter>
+              <GlobalCommandPalette />
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
-                  <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                  <Route path="/landing" element={<Landing />} />
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
                   <Route path="/assets" element={<ProtectedRoute><Assets /></ProtectedRoute>} />
                   <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
